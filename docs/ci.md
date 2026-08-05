@@ -13,9 +13,11 @@ This is a **one-time, user-run prerequisite** — it must be done on the GB10
 box itself and cannot be performed from CI or from another host. Do this after
 the repo exists on GitHub (the runner is registered to a specific repo URL).
 
-1. **Fetch a registration token** (token is short-lived; generate it fresh):
+1. **Fetch a registration token** (token is short-lived; generate it fresh).
+   Note the `-X POST` — the registration-token endpoint requires POST;
+   `gh api` defaults to GET, which 404s:
    ```bash
-   gh api repos/Fulton-Engineering-Services/dgx-spark-wheels/actions/runners/registration-token --jq .token
+   gh api -X POST repos/Fulton-Engineering-Services/dgx-spark-wheels/actions/runners/registration-token --jq .token
    ```
 
 2. **On the GB10 box**, download the arm64 GitHub Actions runner and configure
