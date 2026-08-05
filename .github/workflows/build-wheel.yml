@@ -7,6 +7,10 @@ name: Build wheel (self-hosted GB10 runner)
 # onnxruntime-gpu is ~90 min on 20 cores with a large build tree. So every
 # wheel builds on the self-hosted GB10 runner inside the build-env:22.04
 # container. See docs/ci.md for runner setup.
+#
+# Two jobs: "build" runs inside the container (CUDA toolchain + GPU); "release"
+# runs on the bare runner host (no container) so the gh CLI is available for
+# release upload. The wheel passes between them via actions/upload-artifact.
 
 on:
   workflow_dispatch:
@@ -48,10 +52,28 @@ jobs:
         with:
           subject-path: "dist/*.whl"
 
-      - name: Upload to release
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheel-${{ inputs.package }}
+          path: dist/*.whl
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: [self-hosted, gb10]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wheel-${{ inputs.package }}
+          path: dist
+
+      - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
           # Release tag uses the PUBLIC version segment only (no "+local"),
@@ -59,5 +81,6 @@ jobs:
           # segment lives in the wheel filename/metadata.
           version=$(python3 -c "import json; p=next(p for p in json.load(open('packages.json'))['packages'] if p['name']=='${{ inputs.package }}'); print(p.get('public_version') or p['version'].split('+')[0])")
           tag="${{ inputs.package }}-v${version}"
-          gh release create "$tag" dist/*.whl --title "$tag" --notes "Built from packages.json at $(git rev-parse --short HEAD)" || \
+          sha=$(git rev-parse --short HEAD)
+          gh release create "$tag" dist/*.whl --title "$tag" --notes "Built from packages.json at ${sha}" || \
           gh release upload "$tag" dist/*.whl --clobber
