@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Build nunchaku wheel for GB10 (sm_121a).
 # setup.py probes the live GPU for compute capability, so a live GPU is required.
+# Requires git submodules (Block-Sparse-Attention etc.).
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg nunchaku
 setup_venv
 clone_fork
 cd "$(src_dir)"
+
+# nunchaku depends on third-party submodules (Block-Sparse-Attention, etc.)
+git submodule update --init --recursive
 
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
