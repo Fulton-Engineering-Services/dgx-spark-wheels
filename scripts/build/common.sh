@@ -50,7 +50,7 @@ setup_venv() {
   . "$VENV/bin/activate"
   pip install --upgrade pip setuptools wheel
   pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
-  pip install ninja packaging wheel setuptools psutil
+  pip install ninja packaging wheel setuptools psutil numpy
   echo "==> venv ready at $VENV ($(python --version))" >&2
 }
 
