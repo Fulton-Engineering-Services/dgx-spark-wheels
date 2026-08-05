@@ -11,9 +11,13 @@
 
 FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu22.04
 
+# Kitware apt repo for a modern CMake (Ubuntu 22.04 ships cmake 3.22, but
+# onnxruntime requires >= 3.28).
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        software-properties-common gnupg git ninja-build cmake ca-certificates && \
+        software-properties-common gnupg git ninja-build ca-certificates wget && \
+    wget -qO- https://apt.kitware.com/kitware-archive.sh | bash -e /dev/stdin && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake && \
     rm -rf /var/lib/apt/lists/*
 
 # Python 3.12 via deadsnakes (cp312 wheels only).
