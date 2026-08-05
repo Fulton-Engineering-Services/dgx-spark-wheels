@@ -26,6 +26,9 @@ c_tensor = helper.make_tensor("c", TensorProto.FLOAT, [3], c.tolist())
 node = helper.make_node("Add", ["x", "c"], ["y"])
 graph = helper.make_graph([node], "add", [x], [y], [c_tensor])
 model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 13)])
+# Cap IR version to what onnxruntime 1.22 supports (the onnx pip package may
+# default to a newer IR version than this ort build accepts).
+model.ir_version = 10
 onnx.checker.check_model(model)
 
 sess = ort.InferenceSession(
