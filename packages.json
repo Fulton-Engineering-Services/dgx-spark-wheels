@@ -77,7 +77,7 @@
       "arch_target": "generic (CMAKE_CUDA_ARCHITECTURES=120)",
       "fork": "https://github.com/Fulton-Engineering-Services/onnxruntime",
       "fork_branch": "cuda13-aarch64-gb10",
-      "fork_ref": "099ea8daee42999e39d8a8ad384af2858133b865",
+      "fork_ref": "c89c729ee15a7aa73781ec08b7554ee493dddddd",
       "upstream_base": "rel-1.22.0",
       "upstream": "https://github.com/microsoft/onnxruntime",
       "upstream_license": "MIT",
