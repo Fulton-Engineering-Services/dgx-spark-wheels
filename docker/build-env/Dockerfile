@@ -15,7 +15,7 @@ FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu22.04
 # onnxruntime requires >= 3.28).
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        software-properties-common gnupg git ninja-build ca-certificates wget && \
+        software-properties-common gnupg git ninja-build ca-certificates wget zlib1g-dev && \
     wget -qO- https://apt.kitware.com/kitware-archive.sh | bash -e /dev/stdin && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake && \
     rm -rf /var/lib/apt/lists/*

@@ -24,7 +24,7 @@ export LD_LIBRARY_PATH="$CUDNN_HOME/lib:${LD_LIBRARY_PATH:-}"
   --allow_running_as_root \
   --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version 13.0 \
   --parallel "$(nproc)" \
-  --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF
+  --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Wheel lands in build/Linux/Release/dist/onnxruntime_gpu-*.whl
 built="$(ls -t build/Linux/Release/dist/onnxruntime_gpu-*.whl | head -1)"
