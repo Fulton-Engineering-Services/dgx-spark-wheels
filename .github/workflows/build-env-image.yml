@@ -20,6 +20,12 @@ jobs:
   build-and-push:
     runs-on: [self-hosted, gb10]
     steps:
+      - name: Fix workspace permissions
+        # Container build jobs run as root and leave root-owned files in the
+        # shared workspace; this chowns them back to the runner user so checkout
+        # can clean/reset the workspace.
+        run: docker run --rm -v ${{ github.workspace }}:/work alpine chown -R 1000:1000 /work
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lowercase repo name for GHCR
