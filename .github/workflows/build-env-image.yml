@@ -35,4 +35,4 @@ jobs:
           context: docker/build-env
           push: true
           tags: ghcr.io/${{ github.repository }}/build-env:22.04
-          provenance: true
+          provenance: false
