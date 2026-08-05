@@ -59,17 +59,28 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
+      - name: Upload packages.json artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: manifest-${{ inputs.package }}
+          path: packages.json
+          retention-days: 1
+
   release:
     needs: build
     runs-on: [self-hosted, gb10]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Download wheel artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: wheel-${{ inputs.package }}
           path: dist
+
+      - name: Download manifest artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: manifest-${{ inputs.package }}
+          path: .
 
       - name: Upload to GitHub Release
         env:
@@ -81,6 +92,6 @@ jobs:
           # segment lives in the wheel filename/metadata.
           version=$(python3 -c "import json; p=next(p for p in json.load(open('packages.json'))['packages'] if p['name']=='${{ inputs.package }}'); print(p.get('public_version') or p['version'].split('+')[0])")
           tag="${{ inputs.package }}-v${version}"
-          sha=$(git rev-parse --short HEAD)
-          gh release create "$tag" dist/*.whl --title "$tag" --notes "Built from packages.json at ${sha}" || \
+          sha="${{ github.sha }}"
+          gh release create "$tag" dist/*.whl --title "$tag" --notes "Built from packages.json at ${sha:0:7}" || \
           gh release upload "$tag" dist/*.whl --clobber
