@@ -1,0 +1,87 @@
+{
+  "abi": {
+    "os": "linux",
+    "arch": "aarch64",
+    "python": "cp312",
+    "cuda": "13.0",
+    "torch": "2.13.0+cu130",
+    "compute_capability": "12.1",
+    "glibc_floor": "2.35",
+    "build_container": "ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04",
+    "local_version_convention": "<public_version>+cu13.0torch2.13.glibc235 (torch-dependent packages); +cu13.0.glibc235 (onnxruntime-gpu, which links CUDA but not torch). Wheel filenames carry the local segment; release tags use the public version only (no +local)."
+  },
+  "packages": [
+    {
+      "name": "flash-attn",
+      "version": "2.8.3.post1+cu13.0torch2.13.glibc235",
+      "public_version": "2.8.3.post1",
+      "wheel": "flash_attn-2.8.3.post1+cu13.0torch2.13.glibc235-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_120 (PTX forward-compat on sm_121)",
+      "fork": "https://github.com/Fulton-Engineering-Services/flash-attention",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "a8aa52b1ab3e9ca574c8a33b3f35afc017ffa2e2",
+      "upstream_tag": "v2.8.3.post1",
+      "upstream": "https://github.com/Dao-AILab/flash-attention",
+      "upstream_license": "BSD-3-Clause",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04)",
+      "notes": "Narrowed to GB10-only build. Do not raise MAX_JOBS above ~4-8 without watching free -h; flash_bwd_hdim256_*_sm80 backward kernels are the OOM failure mode."
+    },
+    {
+      "name": "sageattention",
+      "version": "2.2.0+cu13.0torch2.13.glibc235",
+      "public_version": "2.2.0",
+      "wheel": "sageattention-2.2.0+cu13.0torch2.13.glibc235-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121",
+      "fork": "https://github.com/Fulton-Engineering-Services/SageAttention",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "d1a57a546c3d395b1ffcbeecc66d81db76f3b4b5",
+      "upstream": "https://github.com/thu-ml/SageAttention",
+      "upstream_license": "BSD-3-Clause",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04)",
+      "notes": "Small extension set, builds in well under a minute."
+    },
+    {
+      "name": "sageattn3",
+      "version": "1.0.0+cu13.0torch2.13.glibc235",
+      "public_version": "1.0.0",
+      "wheel": "sageattn3-1.0.0+cu13.0torch2.13.glibc235-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121a (auto-detected at build time)",
+      "fork": "https://github.com/Fulton-Engineering-Services/SageAttention",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "d1a57a546c3d395b1ffcbeecc66d81db76f3b4b5",
+      "fork_subdir": "sageattention3_blackwell/",
+      "upstream_license": "BSD-3-Clause",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04)",
+      "notes": "setup.py probes the live GPU's compute capability; no arch env var needed. Fast build (2 extensions). Requires --gpus all at build time."
+    },
+    {
+      "name": "nunchaku",
+      "version": "1.2.1+cu13.0torch2.13.glibc235",
+      "public_version": "1.2.1",
+      "wheel": "nunchaku-1.2.1+cu13.0torch2.13.glibc235-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121a (auto-detected at build time)",
+      "fork": "https://github.com/Fulton-Engineering-Services/nunchaku",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "af49f24911b49147c074ed96c324fb66884d1f87",
+      "upstream_tag": "v1.2.1",
+      "upstream": "https://github.com/nunchaku-ai/nunchaku",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04)",
+      "notes": "--gpus all required at build time; setup.py probes the live GPU to select sm_121a."
+    },
+    {
+      "name": "onnxruntime-gpu",
+      "version": "1.22.0+cu13.0.glibc235",
+      "public_version": "1.22.0",
+      "wheel": "onnxruntime_gpu-1.22.0+cu13.0.glibc235-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "generic (CMAKE_CUDA_ARCHITECTURES=120)",
+      "fork": "https://github.com/Fulton-Engineering-Services/onnxruntime",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "upstream_base": "rel-1.22.0",
+      "upstream": "https://github.com/microsoft/onnxruntime",
+      "upstream_license": "MIT",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04), ~90 min on 20 cores",
+      "notes": "Fork carries CUDA-13/aarch64 build-compatibility patches (cub/thrust compat, CUTLASS version-check) applied automatically at configure time; no manual patching needed."
+    }
+  ]
+}

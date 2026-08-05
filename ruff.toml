@@ -1,0 +1,9 @@
+line-length = 100
+
+[lint]
+# generate-index.py is a small, standalone script. Keep the rule set light so
+# the first CI run is green without contorting the code.
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # line length handled by line-length + formatter
+]

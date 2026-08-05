@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# spark-doctor: preflight check for dgx-spark-wheels.
+#
+# Prints this machine's actual ABI (arch, compute capability, CUDA, glibc,
+# Python, torch) and tells you which dgx-spark-wheels index entries match.
+# Run this BEFORE `pip install`-ing anything from the index: a wheel
+# filename's cp312-linux_aarch64 tag does NOT capture CUDA version or glibc
+# version, so a naive install can silently pull a wheel that either fails to
+# import, or imports fine and runs the wrong kernels.
+#
+# Usage:
+#   curl -fsSL https://raw.githubusercontent.com/Fulton-Engineering-Services/dgx-spark-wheels/main/scripts/spark-doctor | bash
+#   # or locally:
+#   ./scripts/spark-doctor
+
+set -euo pipefail
+
+bold() { printf '\033[1m%s\033[0m\n' "$*"; }
+kv()   { printf '  %-22s %s\n' "$1:" "$2"; }
+
+bold "spark-doctor: system ABI report"
+echo
+
+ARCH="$(uname -m)"
+kv "Architecture" "$ARCH"
+if [ "$ARCH" != "aarch64" ]; then
+    echo "  WARNING: this index only publishes aarch64 wheels; you are not on aarch64." >&2
+fi
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+    GPU_NAME="$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || echo unknown)"
+    COMPUTE_CAP="$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 || echo unknown)"
+    kv "GPU" "$GPU_NAME"
+    kv "Compute capability" "$COMPUTE_CAP"
+    if [ "$COMPUTE_CAP" != "12.1" ]; then
+        echo "  NOTE: this index targets compute capability 12.1 (GB10/sm_121)." >&2
+        echo "        Wheels built for sm_121/sm_121a are not guaranteed to run on your GPU." >&2
+    fi
+else
+    kv "GPU" "nvidia-smi not found"
+fi
+
+if command -v nvcc >/dev/null 2>&1; then
+    kv "CUDA (nvcc)" "$(nvcc --version | grep -o 'release [0-9.]*' | head -1)"
+else
+    kv "CUDA (nvcc)" "not found"
+fi
+
+PYVER="$(python3 --version 2>&1 | awk '{print $2}')"
+kv "Python" "$PYVER"
+case "$PYVER" in
+    3.12.*) ;;
+    *) echo "  NOTE: this index only publishes cp312 wheels; you are running Python $PYVER." >&2 ;;
+esac
+
+GLIBC_VER="$(ldd --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+$' || echo unknown)"
+kv "glibc" "$GLIBC_VER"
+
+if python3 -c "import torch" >/dev/null 2>&1; then
+    TORCH_VER="$(python3 -c 'import torch; print(torch.__version__)')"
+    kv "torch" "$TORCH_VER"
+    case "$TORCH_VER" in
+        *+cu130*) ;;
+        *) echo "  NOTE: this index's wheels were built against torch 2.13.0+cu130. Yours: $TORCH_VER" >&2 ;;
+    esac
+else
+    kv "torch" "not installed"
+fi
+
+echo
+bold "Verdict"
+if [ "$ARCH" = "aarch64" ] && [ "${COMPUTE_CAP:-}" = "12.1" ]; then
+    echo "  This looks like a GB10 (DGX Spark class) machine. The index's current"
+    echo "  packages (flash-attn, sageattention, sageattn3, nunchaku, onnxruntime-gpu)"
+    echo "  are the ones actually built and kernel-verified for this hardware."
+else
+    echo "  This does not look like the exact ABI these wheels were built for."
+    echo "  Installing from this index is NOT recommended -- expect either an"
+    echo "  import failure or, worse, a wheel that imports but launches the"
+    echo "  wrong kernels for your compute capability."
+fi
