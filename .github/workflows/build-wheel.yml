@@ -31,7 +31,8 @@ jobs:
   build:
     runs-on: [self-hosted, gb10]
     container:
-      image: ghcr.io/${{ github.repository }}/build-env:22.04
+      # GHCR requires lowercase; the org name has uppercase letters.
+      image: ghcr.io/fulton-engineering-services/dgx-spark-wheels/build-env:22.04
       options: --gpus all --ulimit memlock=-1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
