@@ -50,6 +50,11 @@ export MAX_JOBS="${MAX_JOBS:-$(nproc)}"
 export CUSPARSELT_ROOT_DIR="$CUDA_HOME"
 export CUFILE_ROOT_DIR="$CUDA_HOME"
 
+# cuDSS installs into versioned subdirectories (libcudss/13/); PyTorch's
+# FindCUDSS.cmake searches standard include/lib paths.
+export CUDSS_INCLUDE_DIR=/usr/include/libcudss/13
+export CUDSS_LIBRARY=/usr/lib/aarch64-linux-gnu/libcudss/13
+
 python setup.py bdist_wheel
 
 built="$(ls -t dist/*.whl | head -1)"
