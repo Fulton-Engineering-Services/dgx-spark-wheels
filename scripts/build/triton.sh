@@ -17,6 +17,7 @@ export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 export MAX_JOBS="${MAX_JOBS:-$(nproc)}"
 
+pip install pybind11
 python setup.py bdist_wheel
 
 built="$(ls -t dist/*.whl | head -1)"
