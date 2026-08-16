@@ -4,8 +4,22 @@ All wheel builds run on a **self-hosted GB10 runner** (`[self-hosted, gb10]`)
 inside the build-env container, because every package here either needs a live
 GPU at build time (sageattn3, nunchaku probe compute capability in `setup.py`)
 or exceeds the free `ubuntu-24.04-arm` runner's 4 vCPU / 16 GB RAM / 14 GB
-disk envelope (flash-attn, onnxruntime-gpu). The index generator and lint job
-are the only things that run on the free runner.
+disk envelope (flash-attn, onnxruntime-gpu, and the from-source torch build).
+The index generator and lint job are the only things that run on the free
+runner.
+
+## Runner prerequisites
+
+The GB10 box must have:
+
+- **≥200 GB free disk** (PyTorch's source tree + build tree + submodules +
+  wheel output is ~100-150 GB; don't starve it).
+- **≥32 GB RAM** (GB10's unified memory makes this the same pool the GPU
+  uses — see the README "Unified memory" note).
+- **Docker** with `nvidia-container-toolkit` configured for GPU containers.
+- A **12-hour job timeout** is set on `build-wheel.yml`'s `build` job
+  (`timeout-minutes: 720`) because the from-source torch build can run many
+  hours at `MAX_JOBS=$(nproc)`.
 
 ## Registering the self-hosted GB10 runner
 
@@ -29,9 +43,9 @@ the repo exists on GitHub (the runner is registered to a specific repo URL).
    # https://github.com/actions/runner/releases (pick the linux-arm64 asset).
    tar xzf actions-runner-linux-arm64-*.tar.gz
    ./config.sh --url https://github.com/Fulton-Engineering-Services/dgx-spark-wheels \
-               --token <TOKEN_FROM_STEP_1> \
-               --labels gb10 \
-               --ephemeral
+                --token <TOKEN_FROM_STEP_1> \
+                --labels gb10 \
+                --ephemeral
    sudo ./svc.sh install
    sudo ./svc.sh start
    ```
@@ -59,28 +73,55 @@ the repo exists on GitHub (the runner is registered to a specific repo URL).
 
 Strictly, in this order (each gated on the previous):
 
-1. **`build-env-image.yml`** — builds + pushes
-   `ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04` to
+1. **Create the four forks** (`pytorch`, `audio`, `vision`, `triton`) under
+   `Fulton-Engineering-Services` with the `cuda13.3-aarch64-gb10` branch,
+   apply the `dgx_spark_config/pytorch/pytorch.patch` sm_121 patch to the
+   pytorch fork, then fill in each `fork_ref` (and the triton version) in
+   `packages.json` with the resulting HEAD SHAs.
+
+2. **`build-env-image.yml`** — builds + pushes
+   `ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04` to
    GHCR. Trigger: `gh workflow run build-env-image.yml`. No GPU needed for the
    image build, but it runs on the GB10 runner (the CUDA-devel base is
    multi-GB and blows the free runner's 14 GB disk).
 
-2. **`build-wheel.yml`** — once per package (5 runs), via
-   `gh workflow run build-wheel.yml -f package=<pkg>`. Each builds inside the
-   build-env container, injects the local-version ABI segment, runs a real
-   kernel-launch smoke test, attests provenance, and uploads the wheel to a
-   Release tagged `<pkg>-v<public-version>`.
+3. **`build-all.yml`** — the ordered full-index rebuild. Trigger:
+   `gh workflow run build-all.yml`. This orchestrates the whole dependency
+   chain in one run:
+   `triton` → `torch` → `torchaudio` + `torchvision` → `flash-attn` +
+   `sageattention` + `sageattn3` + `nunchaku` + `onnxruntime-gpu`.
+   Each stage reuses `build-wheel.yml` via `workflow_call`, passing the
+   `torch_wheel` / `triton_wheel` artifact names so torch-linked wheels
+   compile against the from-source torch instead of PyPI.
 
-3. **`publish-index.yml`** — regenerates the PEP 503 index from `packages.json`
+4. **`publish-index.yml`** — regenerates the PEP 503 index from `packages.json`
    and deploys to GitHub Pages. Trigger: `gh workflow run publish-index.yml`.
    Runs on the free `ubuntu-24.04-arm` runner (just generates HTML).
+
+### Manual single-package builds
+
+`build-wheel.yml` can also be triggered directly:
+
+```bash
+gh workflow run build-wheel.yml -f package=flash-attn
+```
+
+Omit `torch_wheel` / `triton_wheel` and the build falls back to PyPI torch
+(`common.sh`). This is fine for a one-off rebuild before the from-source
+torch wheel is published, but the resulting wheel will NOT carry the
+from-source-torch ABI — prefer `build-all.yml` for anything you intend to
+publish.
 
 ## Which packages need the GB10 runner (and why)
 
 | Package | GB10 runner? | Reason |
 |---|---|---|
+| `triton` | yes | downloads/compiles pinned LLVM; exceeds free runner disk |
+| `torch` | yes | from-source build, hours on 20 cores, ~100 GB build tree |
+| `torchaudio` | yes | needs the from-source torch wheel; CUDA extensions |
+| `torchvision` | yes | needs the from-source torch wheel; CUDA extensions |
 | `flash-attn` | yes | `MAX_JOBS=4` cap; hdim256 backward kernels OOM above ~8 |
-| `sageattention` | yes | small/fast, but kept on GB10 for v1 simplicity |
+| `sageattention` | yes | small/fast, but kept on GB10 for simplicity |
 | `sageattn3` | yes | `setup.py` probes live GPU compute capability → `sm_121a` |
 | `nunchaku` | yes | `setup.py` probes live GPU → `sm_121a`; needs `--gpus all` |
 | `onnxruntime-gpu` | yes | ~90 min on 20 cores; large build tree exceeds 14 GB disk |
@@ -88,4 +129,4 @@ Strictly, in this order (each gated on the previous):
 A future hardening (per the project strategy) is to patch `setup.py` in
 sageattn3/nunchaku to accept an explicit `TORCH_CUDA_ARCH_LIST` override, which
 would remove the live-GPU requirement and let those build on a hosted runner —
-but the disk constraint for flash-attn/onnxruntime remains.
+but the disk constraint for flash-attn/onnxruntime/torch remains.

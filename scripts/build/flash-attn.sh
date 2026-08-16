@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build flash-attn wheel for GB10 (sm_120, PTX forward-compat on sm_121).
-# Runs inside the build-env:22.04 container on a self-hosted GB10 runner.
+# Runs inside the build-env:24.04 container on a self-hosted GB10 runner.
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg flash-attn

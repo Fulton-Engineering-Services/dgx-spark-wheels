@@ -5,12 +5,18 @@ name: Build wheel (self-hosted GB10 runner)
 # any wheel build here: sageattn3/nunchaku probe the live GPU at build time,
 # flash-attn caps MAX_JOBS at 4 (hdim256 backward kernels OOM above ~8), and
 # onnxruntime-gpu is ~90 min on 20 cores with a large build tree. So every
-# wheel builds on the self-hosted GB10 runner inside the build-env:22.04
+# wheel builds on the self-hosted GB10 runner inside the build-env:24.04
 # container. See docs/ci.md for runner setup.
 #
 # Two jobs: "build" runs inside the container (CUDA toolchain + GPU); "release"
 # runs on the bare runner host (no container) so the gh CLI is available for
 # release upload. The wheel passes between them via actions/upload-artifact.
+#
+# Reusable (workflow_call): build-all.yml calls this workflow once per package,
+# passing torch_wheel / triton_wheel artifact names produced earlier in the
+# same run, so torch-linked wheels compile against the from-source torch
+# instead of PyPI. Manual (workflow_dispatch) builds omit those inputs and
+# fall back to PyPI torch (see scripts/build/common.sh).
 
 on:
   workflow_dispatch:
@@ -25,6 +31,33 @@ on:
           - sageattn3
           - nunchaku
           - onnxruntime-gpu
+          - triton
+          - torch
+          - torchaudio
+          - torchvision
+      torch_wheel:
+        description: "Artifact name of a torch wheel built earlier in this run (optional)"
+        required: false
+        type: string
+        default: ""
+      triton_wheel:
+        description: "Artifact name of a triton wheel built earlier in this run (optional)"
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+      torch_wheel:
+        required: false
+        type: string
+        default: ""
+      triton_wheel:
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -34,15 +67,38 @@ permissions:
 jobs:
   build:
     runs-on: [self-hosted, gb10]
+    timeout-minutes: 720
     container:
       # GHCR requires lowercase; the org name has uppercase letters.
-      image: ghcr.io/fulton-engineering-services/dgx-spark-wheels/build-env:22.04
+      image: ghcr.io/fulton-engineering-services/dgx-spark-wheels/build-env:24.04
       options: --gpus all --ulimit memlock=-1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Download torch wheel artifact
+        if: inputs.torch_wheel != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.torch_wheel }}
+          path: wheels/torch
+
+      - name: Download triton wheel artifact
+        if: inputs.triton_wheel != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.triton_wheel }}
+          path: wheels/triton
+
       - name: Build ${{ inputs.package }}
-        run: scripts/build/${{ inputs.package }}.sh
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.torch_wheel }}" ]; then
+            export TORCH_WHEEL="$(ls wheels/torch/*.whl | head -1)"
+          fi
+          if [ -n "${{ inputs.triton_wheel }}" ]; then
+            export TRITON_WHEEL="$(ls wheels/triton/*.whl | head -1)"
+          fi
+          scripts/build/${{ inputs.package }}.sh
 
       - name: Smoke-test with a real kernel launch
         run: scripts/build/verify-${{ inputs.package }}.sh

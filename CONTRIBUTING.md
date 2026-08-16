@@ -8,7 +8,7 @@
    force-pushes and tag deletions — it does not imply source patches were
    needed; if none were, say so.
 3. Build inside the pinned build container
-   (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04`, or a newer tag if the
+   (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`, or a newer tag if the
    project's floor has moved — see [`docs/build-environment.md`](docs/build-environment.md)
    for why the container, not the bare host, matters).
 4. **Verify with a real CUDA kernel launch**, not just `import package`. A

@@ -1,0 +1,70 @@
+name: Build all wheels (ordered, from-source toolchain)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  # --- Phase 1: Triton (needs nothing) ---
+  triton:
+    uses: ./.github/workflows/build-wheel.yml
+    with:
+      package: triton
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+  # --- Phase 2: PyTorch (needs Triton) ---
+  torch:
+    needs: triton
+    uses: ./.github/workflows/build-wheel.yml
+    with:
+      package: torch
+      triton_wheel: wheel-triton
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+  # --- Phase 3: torchaudio + torchvision (parallel, need torch) ---
+  audio-video:
+    needs: torch
+    strategy:
+      max-parallel: 2
+      matrix:
+        package: [torchaudio, torchvision]
+    uses: ./.github/workflows/build-wheel.yml
+    with:
+      package: ${{ matrix.package }}
+      torch_wheel: wheel-torch
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+  # --- Phase 4: Existing wheels rebuilt against from-source torch + triton ---
+  existing:
+    needs: [torch, triton]
+    strategy:
+      max-parallel: 2
+      matrix:
+        package:
+          - flash-attn
+          - sageattention
+          - sageattn3
+          - nunchaku
+          - onnxruntime-gpu
+    uses: ./.github/workflows/build-wheel.yml
+    with:
+      package: ${{ matrix.package }}
+      torch_wheel: wheel-torch
+      triton_wheel: wheel-triton
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write

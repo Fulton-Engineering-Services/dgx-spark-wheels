@@ -3,19 +3,19 @@
 A `pip`-installable package index of prebuilt Python wheels for
 **NVIDIA GB10** (the chip in the DGX Spark and its OEM variants — ASUS
 Ascent GX10, and others) — specifically for packages that publish **no**
-upstream wheel matching this platform's ABI: `linux_aarch64`, CUDA 13.x,
-`torch==2.13.0+cu130`, `cp312` (Python 3.12), compute capability `(12, 1)` /
-`sm_121`.
+upstream wheel matching this platform's ABI: `linux_aarch64`, CUDA 13.3,
+`torch==2.13.0+cu133` (built from source), `cp312` (Python 3.12), compute
+capability `(12, 1)` / `sm_121`.
 
 ```bash
-pip install flash-attn sageattention nunchaku onnxruntime-gpu \
+pip install triton torch torchaudio torchvision flash-attn sageattention nunchaku onnxruntime-gpu \
     --extra-index-url https://Fulton-Engineering-Services.github.io/dgx-spark-wheels/simple/
 ```
 
 or with `uv`:
 
 ```bash
-uv pip install flash-attn --extra-index-url https://Fulton-Engineering-Services.github.io/dgx-spark-wheels/simple/
+uv pip install torch flash-attn --extra-index-url https://Fulton-Engineering-Services.github.io/dgx-spark-wheels/simple/
 ```
 
 ## Why this exists
@@ -47,17 +47,21 @@ Every wheel in this index is:
 
 | Package | Version | Arch target | Upstream wheel? | Fork |
 |---|---|---|---|---|
-| `flash-attn` | 2.8.3.post1+cu13.0torch2.13.glibc235 | `sm_120` (PTX-forward-compat on `sm_121`) | No aarch64 wheel published | [fork](https://github.com/Fulton-Engineering-Services/flash-attention) `cuda13-aarch64-gb10` |
-| `sageattention` | 2.2.0+cu13.0torch2.13.glibc235 | `sm_121` | No | [fork](https://github.com/Fulton-Engineering-Services/SageAttention) `cuda13-aarch64-gb10` |
-| `sageattn3` | 1.0.0+cu13.0torch2.13.glibc235 | `sm_121a` (auto-detected) | No | same fork, `sageattention3_blackwell/` subdir |
-| `nunchaku` | 1.2.1+cu13.0torch2.13.glibc235 | `sm_121a` (auto-detected) | No | [fork](https://github.com/Fulton-Engineering-Services/nunchaku) `cuda13-aarch64-gb10` |
-| `onnxruntime-gpu` | 1.22.0+cu13.0.glibc235 | generic (no arch pin) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/onnxruntime) `cuda13-aarch64-gb10` |
+| `triton` | 3.4.0+cu13.3torch2.13.glibc239 | aarch64 (CUDA PTX JIT) | No aarch64 wheel | [fork](https://github.com/Fulton-Engineering-Services/triton) `cuda13.3-aarch64-gb10` |
+| `torch` | 2.13.0+cu13.3.glibc239 | `sm_120`+`sm_121` PTX (from-source) | No | [fork](https://github.com/Fulton-Engineering-Services/pytorch) `cuda13.3-aarch64-gb10` |
+| `torchaudio` | 2.13.0+cu13.3torch2.13.glibc239 | `sm_120`+`sm_121` PTX | No | [fork](https://github.com/Fulton-Engineering-Services/audio) `cuda13.3-aarch64-gb10` |
+| `torchvision` | 0.28.0+cu13.3torch2.13.glibc239 | `sm_120`+`sm_121` PTX | No | [fork](https://github.com/Fulton-Engineering-Services/vision) `cuda13.3-aarch64-gb10` |
+| `flash-attn` | 2.8.3.post1+cu13.3torch2.13.glibc239 | `sm_120` (PTX-forward-compat on `sm_121`) | No aarch64 wheel published | [fork](https://github.com/Fulton-Engineering-Services/flash-attention) `cuda13-aarch64-gb10` |
+| `sageattention` | 2.2.0+cu13.3torch2.13.glibc239 | `sm_121` | No | [fork](https://github.com/Fulton-Engineering-Services/SageAttention) `cuda13-aarch64-gb10` |
+| `sageattn3` | 1.0.0+cu13.3torch2.13.glibc239 | `sm_121a` (auto-detected) | No | same fork, `sageattention3_blackwell/` subdir |
+| `nunchaku` | 1.2.1+cu13.3torch2.13.glibc239 | `sm_121a` (auto-detected) | No | [fork](https://github.com/Fulton-Engineering-Services/nunchaku) `cuda13-aarch64-gb10` |
+| `onnxruntime-gpu` | 1.22.0+cu13.3.glibc239 | generic (no arch pin) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/onnxruntime) `cuda13-aarch64-gb10` |
 
 See [`packages.json`](packages.json) for the machine-readable manifest (used
 to generate the index) and [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md)
 for the license each package is redistributed under.
 
-> **Why the `+cu13.0torch2.13.glibc235` version suffix?** The wheel filename
+> **Why the `+cu13.3torch2.13.glibc239` version suffix?** The wheel filename
 > tag `cp312-linux_aarch64` says nothing about CUDA version, torch build, or
 > glibc floor — so a naive `pip install` can silently pull a wheel that
 > imports but launches the wrong kernels. The local-version segment encodes
@@ -87,13 +91,13 @@ silently running the wrong kernels. Run the doctor first.
 A wheel's compiled `.so` links against the **glibc of the build host**, not
 just its CUDA/torch/Python ABI — and none of `cp312`, `linux_aarch64`, or a
 CUDA version in the filename capture that. If you build on a bare
-Ubuntu 24.04 host (glibc 2.39) and try to `pip install` the result inside an
-Ubuntu 22.04 container (glibc 2.35), you'll hit
-`GLIBC_2.38' not found` even though CUDA, torch, and Python versions all
+Ubuntu 26.04 host (glibc 2.41) and try to `pip install` the result inside an
+Ubuntu 24.04 container (glibc 2.39), you'll hit
+`GLIBC_2.41' not found` even though CUDA, torch, and Python versions all
 match perfectly.
 
 **Every wheel in this index is built inside a container matching the
-oldest glibc we support** (currently Ubuntu 22.04 / glibc 2.35), specifically
+oldest glibc we support** (currently Ubuntu 24.04 / glibc 2.39), specifically
 to avoid this. If you're building your own variant, do the same — build in
 (or targeting) the *oldest* glibc your deployment targets, never the bare
 host, and check the real manylinux/glibc floor with `auditwheel show`
@@ -120,7 +124,7 @@ share one physical pool here.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version: fork upstream, pin
 a branch, build inside the pinned container image
-(`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04`), verify with a real
+(`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`), verify with a real
 kernel launch, open a PR adding an entry to `packages.json` plus the CI
 workflow reference.
 

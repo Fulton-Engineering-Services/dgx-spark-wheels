@@ -2,11 +2,11 @@
 # common.sh — shared helpers for scripts/build/<pkg>.sh.
 # Sourced, not executed directly. Provides:
 #   load_pkg <name>   — read packages.json, export fork/ref/subdir/version/local_seg
-#   setup_venv        — create a python3.12 venv with torch (cu130) + build deps
+#   setup_venv        — create a python3.12 venv with torch (local wheel or cu130) + build deps
 #   clone_fork        — clone the pinned fork into $SRC_DIR
 #
-# Runs inside the ghcr.io build-env:22.04 container (CUDA 13.0.1 devel,
-# glibc 2.35, python3.12) on a self-hosted GB10 runner. CUDA is on PATH via
+# Runs inside the ghcr.io build-env:24.04 container (CUDA 13.3.1 devel,
+# glibc 2.39, python3.12) on a self-hosted GB10 runner. CUDA is on PATH via
 # the image; a live GPU is present (--gpus all in build-wheel.yml).
 
 set -euo pipefail
@@ -49,7 +49,25 @@ setup_venv() {
   # shellcheck disable=SC1091
   . "$VENV/bin/activate"
   pip install --upgrade pip setuptools wheel
-  pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+  # torch: prefer a locally-built wheel (TORCH_WHEEL artifact), else PyPI cu130.
+  # SKIP_TORCH_INSTALL=1 skips torch entirely (used by the torch build itself,
+  # which is building torch, not consuming it).
+  if [ "${SKIP_TORCH_INSTALL:-0}" = "1" ]; then
+    echo "==> SKIP_TORCH_INSTALL=1: not installing torch (building it)" >&2
+  elif [ -n "${TORCH_WHEEL:-}" ] && [ -f "$TORCH_WHEEL" ]; then
+    echo "==> installing torch from local wheel: $TORCH_WHEEL" >&2
+    pip install "$TORCH_WHEEL"
+  else
+    echo "==> installing torch==2.13.0 from PyPI cu130 index" >&2
+    pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+  fi
+  # triton: optional locally-built wheel (TRITON_WHEEL artifact). PyTorch
+  # declares triton as a normal dependency when built with USE_SYSTEM_TRITON=1,
+  # so downstream wheels install it here when provided.
+  if [ -n "${TRITON_WHEEL:-}" ] && [ -f "$TRITON_WHEEL" ]; then
+    echo "==> installing triton from local wheel: $TRITON_WHEEL" >&2
+    pip install "$TRITON_WHEEL"
+  fi
   pip install ninja packaging wheel setuptools psutil numpy
   echo "==> venv ready at $VENV ($(python --version))" >&2
 }

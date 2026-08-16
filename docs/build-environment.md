@@ -7,16 +7,30 @@ Reproduce it before rebuilding anything.
 |---|---|
 | Host arch | `aarch64` |
 | GPU | GB10-class, compute capability `(12, 1)` = `sm_121` |
-| CUDA (`nvcc`) | `13.0.88` |
+| CUDA (`nvcc`) | `13.3.1` |
 | Python | `3.12` (`cp312` wheels only) |
-| torch | `2.13.0+cu130` (`--index-url https://download.pytorch.org/whl/cu130`) |
+| torch | `2.13.0+cu133` (built from source against CUDA 13.3.1) |
+| triton | built from source (see packages.json for pinned fork/ref) |
+| glibc floor | `2.39` (Ubuntu 24.04) |
+
+The build-env container image is `ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`,
+built from `docker/build-env/Dockerfile` (`FROM nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04`).
+
+## Reproducing with the build-env container
 
 ```bash
-mkdir -p ~/gb10-wheel-build && cd ~/gb10-wheel-build
-uv venv --python 3.12 .venv
-export VIRTUAL_ENV=~/gb10-wheel-build/.venv
-uv pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
-uv pip install ninja packaging wheel setuptools psutil einops numpy
+# Build scripts run inside this container (CI: self-hosted GB10 runner).
+# For local iteration, pull the image and exec into it:
+docker run --rm --gpus all --ulimit memlock=-1 -it \
+    -v $(pwd):/src -w /src \
+    ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04 \
+    bash
+
+# Inside the container, create a venv with the from-source torch (or PyPI fallback):
+python3.12 -m venv /tmp/build-venv
+source /tmp/build-venv/bin/activate
+pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+pip install ninja packaging wheel setuptools psutil numpy
 ```
 
 ## The glibc gotcha
@@ -24,29 +38,94 @@ uv pip install ninja packaging wheel setuptools psutil einops numpy
 A wheel's compiled `.so` links against the glibc of the **build host**, not
 just its CUDA/torch/Python ABI — and none of `cp312`, `linux_aarch64`, or a
 CUDA version tag in the filename capture that. Building on a bare
-Ubuntu 24.04 host (glibc 2.39) produces a wheel that fails to import in an
-Ubuntu 22.04 runtime (glibc 2.35) with `GLIBC_2.38' not found`, even when
+Ubuntu 26.04 host (glibc 2.41) produces a wheel that fails to import in an
+Ubuntu 24.04 runtime (glibc 2.39) with `GLIBC_2.41' not found`, even when
 CUDA/torch/Python all match exactly.
 
 **Policy for this index: build every wheel inside a container matching the
-oldest glibc we support** (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04`,
-glibc 2.35), not on the bare host — even for packages that happen not to
-need any glibc symbol newer than 2.35 today. A future dependency bump could
-introduce one silently. (That image is `FROM` the
-`nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu22.04` base plus deadsnakes Python
-3.12 and build deps — see `docker/build-env/Dockerfile`.)
+oldest glibc we support** (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`,
+glibc 2.39), not on the bare host. (That image is `FROM` the
+`nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04` base with Python 3.12 and
+build deps — see `docker/build-env/Dockerfile`.)
+
+## ciSPARSELt and cuFile (GDS) paths
+
+The build-env image installs cuSPARSELt 0.8.1 and cuFile (GPUDirect Storage)
+under `CUDA_HOME`:
+
+```bash
+export CUDA_HOME=/usr/local/cuda
+export CUSPARSELT_HOME="$CUDA_HOME"
+export CUFILE_HOME="$CUDA_HOME"
+```
+
+These are also set in the Dockerfile. PyTorch's `setup.py` discovers them
+automatically when the `USE_CUSPARSELT=1` / `USE_CUFILE=1` flags are set.
 
 ## Per-package build notes
+
+### `triton`
+
+- Fork: `Fulton-Engineering-Services/triton`, branch `cuda13.3-aarch64-gb10`, pinned to the commit PyTorch 2.13.0 expects.
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  export MAX_JOBS=$(nproc)
+  cd python && python setup.py bdist_wheel
+  ```
+- Triton downloads its own pinned prebuilt LLVM during build (see `cmake/llvm-hash.txt`). No system LLVM package needed.
+- Depends on `torch` (PyPI cu130 or the from-source torch wheel).
+
+### `torch`
+
+- Fork: `Fulton-Engineering-Services/pytorch`, branch `cuda13.3-aarch64-gb10`, built from source with cuDNN, cuSPARSELt, cuFile, system NCCL, and system Triton.
+- Apply `dgx_spark_config/pytorch/pytorch.patch` on the fork to add `sm_121` support.
+- Build:
+  ```bash
+  export PYTORCH_BUILD_VERSION=2.13.0 PYTORCH_BUILD_NUMBER=1
+  export USE_CUDA=1 USE_CUDNN=1 USE_CUSPARSELT=1 USE_CUFILE=1
+  export USE_SYSTEM_NCCL=1 USE_SYSTEM_TRITON=1
+  export BLAS=OpenBLAS USE_FBGEMM=0 USE_NNPACK=1 USE_MKLDNN=0
+  export BUILD_TEST=0 USE_KINETO=0 USE_ITT=0
+  export CMAKE_GENERATOR=Ninja TORCH_CUDA_ARCH_LIST="12.0;12.1+PTX"
+  export CUSPARSELT_ROOT_DIR="$CUDA_HOME" CUFILE_ROOT_DIR="$CUDA_HOME"
+  export MAX_JOBS=$(nproc)
+  python setup.py bdist_wheel
+  ```
+- **Hours on 20 cores.** Monitor `free -h` and thermals. The `build-all.yml` job has a 12-hour timeout.
+- Requires `triton` wheel installed first (`USE_SYSTEM_TRITON=1`).
+
+### `torchaudio`
+
+- Fork: `Fulton-Engineering-Services/audio`, branch `cuda13.3-aarch64-gb10`, tag `v2.13.0`.
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  export BUILD_VERSION=2.13.0 TORCH_CUDA_ARCH_LIST="12.0;12.1+PTX"
+  export MAX_JOBS=$(nproc)
+  python setup.py bdist_wheel
+  ```
+- Requires torch (from-source or PyPI cu130) installed in the venv.
+
+### `torchvision`
+
+- Fork: `Fulton-Engineering-Services/vision`, branch `cuda13.3-aarch64-gb10`, tag `v0.28.0`.
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  export FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST="12.0;12.1+PTX"
+  export MAX_JOBS=$(nproc)
+  python setup.py bdist_wheel
+  ```
+- Requires torch and the image codec libraries (`libjpeg-dev`, `libpng-dev`) from the build-env.
 
 ### `flash-attn`
 
 - Fork pinned to tag `v2.8.3.post1`, branch `cuda13-aarch64-gb10`.
-- Narrowed to `sm_120` (PTX-forward-compat on `sm_121`) — not a multi-arch
-  build.
+- Narrowed to `sm_120` (PTX-forward-compat on `sm_121`) — not a multi-arch build.
 - Build:
   ```bash
-  export CUDA_HOME=/usr/local/cuda
-  export PATH="$CUDA_HOME/bin:$PATH"
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
   export FLASH_ATTN_CUDA_ARCHS="120"
   export FLASH_ATTENTION_FORCE_BUILD=TRUE
   export MAX_JOBS=4   # NOT nproc -- hdim256 backward kernels OOM above ~4-8
@@ -61,8 +140,7 @@ introduce one silently. (That image is `FROM` the
 - Fork pinned past upstream PR #297, branch `cuda13-aarch64-gb10`.
 - Build:
   ```bash
-  export CUDA_HOME=/usr/local/cuda
-  export PATH="$CUDA_HOME/bin:$PATH"
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
   export TORCH_CUDA_ARCH_LIST="12.1"
   export EXT_PARALLEL=4 NVCC_APPEND_FLAGS="--threads 8" MAX_JOBS=8
   python setup.py bdist_wheel
@@ -74,49 +152,26 @@ introduce one silently. (That image is `FROM` the
 - Same fork/ref as `sageattention`; lives in `sageattention3_blackwell/`.
 - Build:
   ```bash
-  export CUDA_HOME=/usr/local/cuda
-  export PATH="$CUDA_HOME/bin:$PATH"
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
   export MAX_JOBS=8
   python setup.py bdist_wheel
   ```
-- No arch env var needed — `setup.py` probes the live GPU's compute
-  capability and emits `sm_121a` directly (this means the build step needs
-  a live GPU; a hosted CI runner without one won't be able to build this
-  without patching `setup.py` to accept an explicit arch override).
+- No arch env var needed — `setup.py` probes the live GPU's compute capability and emits `sm_121a`.
 
 ### `nunchaku`
 
 - Fork pinned to tag `v1.2.1`, branch `cuda13-aarch64-gb10`.
-- **Must be built inside a container matching the runtime image's glibc.**
-  Rebuild:
+- Build:
   ```bash
-  docker run --rm --gpus all \
-    -v $(pwd)/nunchaku:/src/nunchaku:ro \
-    -v /tmp/nunchaku-rebuild-out:/out \
-    ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:22.04 \
-    bash -c '
-      set -eux
-      python3.12 -m venv /root/build-venv && source /root/build-venv/bin/activate
-      pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
-      pip install ninja packaging wheel setuptools psutil
-      cp -r /src/nunchaku /tmp/nunchaku-src && cd /tmp/nunchaku-src
-      export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
-      export NUNCHAKU_BUILD_WHEELS=1 MAX_JOBS=8
-      python setup.py bdist_wheel
-      cp dist/*.whl /out/
-    '
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  export NUNCHAKU_BUILD_WHEELS=1 MAX_JOBS=8
+  python setup.py bdist_wheel
   ```
-- The build-env image is `FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu22.04`,
-  so the build container's glibc (2.35) matches the runtime image exactly.
-  Use the `-devel` (not `-runtime`) base family your runtime image's `FROM`
-  uses.
 - `--gpus all` is required — `setup.py` probes the live GPU to pick `121a`.
 
 ### `onnxruntime-gpu`
 
-- Fork based on the `rel-1.22.0` cherry-pick line, plus this fork's own
-  CUDA-13/aarch64 build-compatibility commits (cub/thrust compat, CUTLASS
-  version-check patch). No manual patching needed at build time.
+- Fork based on `rel-1.22.0` with CUDA-13/aarch64 build-compatibility patches.
 - Build:
   ```bash
   git clone --depth 1 --branch cuda13-aarch64-gb10 \
@@ -126,14 +181,12 @@ introduce one silently. (That image is `FROM` the
   export CUDNN_HOME="$(python -c "import site,os; print(os.path.join(site.getsitepackages()[0],'nvidia','cudnn'))")"
   export LD_LIBRARY_PATH="$CUDNN_HOME/lib:$LD_LIBRARY_PATH"
   ./build.sh --config Release --build_wheel --use_cuda --skip_tests \
-    --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version 13.0 \
+    --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version 13.3 \
     --parallel "$(nproc)" \
-    --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF
-  # wheel lands in build/Linux/Release/dist/onnxruntime_gpu-*.whl
-  # ~90 min on 20 cores.
+    --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF CMAKE_POLICY_VERSION_MINIMUM=3.5
   ```
-- cuDNN 9 ships inside the build venv's `nvidia-cudnn-cu13` package, not a
-  system path.
+- cuDNN 9 ships inside the build venv's `nvidia-cudnn-cu13` package, not a system path.
+- ~90 min on 20 cores.
 
 ## Verification
 

@@ -8,6 +8,10 @@ repository's own license.
 
 | Package | Upstream project | License | License text |
 |---|---|---|---|
+| `triton` | [triton-lang/triton](https://github.com/triton-lang/triton) | MIT | [upstream LICENSE](https://github.com/triton-lang/triton/blob/main/LICENSE) |
+| `torch` | [pytorch/pytorch](https://github.com/pytorch/pytorch) | BSD-3-Clause | [upstream LICENSE](https://github.com/pytorch/pytorch/blob/main/LICENSE) |
+| `torchaudio` | [pytorch/audio](https://github.com/pytorch/audio) | BSD-2-Clause | [upstream LICENSE](https://github.com/pytorch/audio/blob/main/LICENSE) |
+| `torchvision` | [pytorch/vision](https://github.com/pytorch/vision) | BSD-3-Clause | [upstream LICENSE](https://github.com/pytorch/vision/blob/main/LICENSE) |
 | `flash-attn` | [Dao-AILab/flash-attention](https://github.com/Dao-AILab/flash-attention) | BSD-3-Clause | [upstream LICENSE](https://github.com/Dao-AILab/flash-attention/blob/main/LICENSE) |
 | `sageattention` | [thu-ml/SageAttention](https://github.com/thu-ml/SageAttention) | BSD-3-Clause | [upstream LICENSE](https://github.com/thu-ml/SageAttention/blob/main/LICENSE) |
 | `sageattn3` | [thu-ml/SageAttention](https://github.com/thu-ml/SageAttention) (`sageattention3_blackwell/`) | BSD-3-Clause | [upstream LICENSE](https://github.com/thu-ml/SageAttention/blob/main/LICENSE) |
