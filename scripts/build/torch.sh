@@ -23,7 +23,7 @@ export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 
 export PYTORCH_BUILD_VERSION="$PKG_PUBLIC_VERSION"
-export PYTORCH_BUILD_NUMBER=""
+export PYTORCH_BUILD_NUMBER=0
 
 export USE_CUDA=1
 export USE_CUDNN=1
