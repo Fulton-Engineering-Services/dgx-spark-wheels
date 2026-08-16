@@ -12,7 +12,7 @@ set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg torch
 SKIP_TORCH_INSTALL=1 setup_venv
-pip install numpy ninja packaging wheel setuptools psutil pyyaml cmake
+pip install numpy ninja packaging wheel setuptools psutil pyyaml cmake typing_extensions
 
 src="$(clone_fork)"
 cd "$src"
