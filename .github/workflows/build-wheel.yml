@@ -90,6 +90,7 @@ jobs:
           path: wheels/triton
 
       - name: Build ${{ inputs.package }}
+        shell: bash
         run: |
           set -euo pipefail
           if [ -n "${{ inputs.torch_wheel }}" ]; then
