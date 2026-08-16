@@ -9,7 +9,7 @@
 # venv by scripts/build/<pkg>.sh (torch must come from the cu130 index and is
 # version-coupled to the wheels, so it is NOT baked in here).
 
-FROM nvcr.io/nvidia/cuda:13.0.1-devel-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu22.04
 
 # Kitware apt repo for a modern CMake (Ubuntu 22.04 ships cmake 3.22, but
 # onnxruntime requires >= 3.28).
