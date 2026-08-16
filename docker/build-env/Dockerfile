@@ -49,8 +49,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 # opts this build container out of the PEP 668 guard. Per-build venvs are
 # unaffected either way.
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
-RUN python3.12 -m pip install --upgrade pip && \
-    python3.12 -m pip install --no-cache-dir ninja packaging wheel setuptools psutil pyyaml
+RUN python3.12 -m pip install --no-cache-dir ninja packaging wheel setuptools psutil pyyaml
 
 # --- cuSPARSELt 0.8.1 (structured sparse GEMM) ---
 # Installs NVIDIA's local repo for Ubuntu 24.04 arm64, then the CUDA 13 dev package.
