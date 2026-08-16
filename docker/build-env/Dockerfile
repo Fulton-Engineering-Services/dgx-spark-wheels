@@ -43,8 +43,12 @@ RUN apt-get update -qq && \
 # Make python3 resolve to 3.12 so build scripts get cp312 by default.
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-# Ubuntu 24.04 strips ensurepip from the stdlib; python3-pip (above) provides
-# a working `python3.12 -m pip`. Upgrade it, then install the build toolchain.
+# Ubuntu 24.04 strips ensurepip from the stdlib and enforces PEP 668
+# (externally-managed-environment) on system-wide pip installs. python3-pip
+# (apt, above) provides a working `python3.12 -m pip`; PIP_BREAK_SYSTEM_PACKAGES
+# opts this build container out of the PEP 668 guard. Per-build venvs are
+# unaffected either way.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN python3.12 -m pip install --upgrade pip && \
     python3.12 -m pip install --no-cache-dir ninja packaging wheel setuptools psutil pyyaml
 
