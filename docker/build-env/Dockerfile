@@ -27,7 +27,7 @@ RUN apt-get update -qq && \
         pkg-config \
         software-properties-common \
         gnupg \
-        python3.12 python3.12-venv python3.12-dev \
+        python3.12 python3.12-venv python3.12-dev python3-pip \
         libopenblas-dev \
         libomp-dev \
         libopenmpi-dev mpi-default-bin \
@@ -43,7 +43,9 @@ RUN apt-get update -qq && \
 # Make python3 resolve to 3.12 so build scripts get cp312 by default.
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-RUN python3.12 -m ensurepip --upgrade && \
+# Ubuntu 24.04 strips ensurepip from the stdlib; python3-pip (above) provides
+# a working `python3.12 -m pip`. Upgrade it, then install the build toolchain.
+RUN python3.12 -m pip install --upgrade pip && \
     python3.12 -m pip install --no-cache-dir ninja packaging wheel setuptools psutil pyyaml
 
 # --- cuSPARSELt 0.8.1 (structured sparse GEMM) ---
