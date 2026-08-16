@@ -19,6 +19,7 @@ RUN apt-get update -qq && \
         build-essential \
         cmake \
         ninja-build \
+        ccache \
         git \
         ca-certificates \
         curl \
@@ -82,6 +83,17 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 ENV CUFILE_HOME=/usr/local/cuda
 
+# --- cuDNN 9 (deep learning primitives) + cuDSS (sparse direct solver) ---
+# Both resolve from the NVIDIA CUDA network repo (cuda-keyring, already
+# configured by the NGC devel base). cuDNN provides cudnn.h + libcudnn.so;
+# cuDSS provides cudss.h + libcudss.so.  PyTorch auto-enables USE_CUDNN /
+# USE_CUDSS when their headers/libs are found.
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libcudnn9-dev-cuda-13 \
+        libcudss0-dev-cuda-13 && \
+    rm -rf /var/lib/apt/lists/*
+
 # --- NCCL (system, from NGC base or apt) ---
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -92,5 +104,11 @@ RUN apt-get update -qq && \
 # CUDA toolchain is already in the base image; expose it on PATH.
 ENV CUDA_HOME=/usr/local/cuda
 ENV PATH="${CUDA_HOME}/bin:${PATH}"
+
+# ccache: PyTorch's cmake auto-enables it when the binary is on PATH. Point the
+# cache at /tmp/ccache — /github/home is not writable in the GH container job.
+# For cross-run persistence (iterative rebuilds), the self-hosted runner should
+# bind-mount a host dir over this path in build-wheel.yml's container options.
+ENV CCACHE_DIR=/tmp/ccache
 
 WORKDIR /src

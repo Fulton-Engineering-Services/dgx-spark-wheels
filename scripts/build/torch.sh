@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Build torch wheel for GB10 from source (aarch64, CUDA 13.3.1).
 #
-# Optimized for Blackwell / sm_120+sm_121 with cuDNN, cuSPARSELt (structured
-# sparse GEMM), cuFile (GPUDirect Storage), and system NCCL. Triton is
-# consumed from the TRITON_WHEEL artifact (USE_SYSTEM_TRITON=1), so this must
-# run after scripts/build/triton.sh in the orchestrated build.
+# Optimized for Blackwell / sm_120+sm_121 with cuDNN, cuDSS (sparse direct
+# solver), cuSPARSELt (structured sparse GEMM), cuFile (GPUDirect Storage),
+# and system NCCL. Triton is a runtime pip dependency in torch 2.13.0 (not a
+# build-time cmake flag — USE_SYSTEM_TRITON was removed upstream), so the
+# triton wheel from the orchestrated build is installed into the venv by
+# common.sh and torch imports it at runtime.
 #
-# This is the long pole of the whole index: hours on the GB10 node at
+# This is the long pole of the whole index: ~40 min on the GB10 node at
 # MAX_JOBS=$(nproc). Watch free -h / thermals on the first run.
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
@@ -27,10 +29,10 @@ export PYTORCH_BUILD_NUMBER=0
 
 export USE_CUDA=1
 export USE_CUDNN=1
+export USE_CUDSS=1
 export USE_CUSPARSELT=1
 export USE_CUFILE=1
 export USE_SYSTEM_NCCL=1
-export USE_SYSTEM_TRITON=1
 export BLAS=OpenBLAS
 export USE_FBGEMM=0
 export USE_NNPACK=1

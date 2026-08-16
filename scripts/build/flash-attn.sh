@@ -10,7 +10,7 @@ cd "$(src_dir)"
 
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
-export FLASH_ATTN_CUDA_ARCHS=120
+export FLASH_ATTN_CUDA_ARCHS="120;121"
 export FLASH_ATTENTION_FORCE_BUILD=TRUE
 export MAX_JOBS=4   # NOT nproc -- flash_bwd_hdim256_*_sm80 backward kernels OOM above ~4-8
 
