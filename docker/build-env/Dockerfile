@@ -67,10 +67,18 @@ RUN wget -q "${CUSPARSELT_URL}" -O "/tmp/${CUSPARSELT_DEB}" && \
 ENV CUSPARSELT_HOME=/usr/local/cuda
 
 # --- cuFile / GPUDirect Storage ---
+# The NGC base image already configures the NVIDIA CUDA network repo
+# (cuda-keyring), so libcufile-dev-13-3 resolves directly. It installs the
+# userspace cuFile header + shared/static libs under
+# /usr/local/cuda-13.3/targets/sbsa-linux. Do NOT install `nvidia-gds`: that
+# metapackage drags in nvidia-fs-dkms (the nvidia_fs.ko kernel module), which
+# cannot build inside a container without kernel headers — the kernel module
+# lives on the DGX host (DGX-OS). A build container only needs the header +
+# .so to compile/link PyTorch with USE_CUFILE=1. Hard-fail rather than
+# silently ship a torch without GDS.
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        nvidia-gds || \
-    echo "[WARN] nvidia-gds not found in repos — cuFile will be disabled" && \
+        libcufile-dev-13-3 && \
     rm -rf /var/lib/apt/lists/*
 ENV CUFILE_HOME=/usr/local/cuda
 
