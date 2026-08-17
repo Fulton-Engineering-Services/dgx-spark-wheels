@@ -29,7 +29,10 @@ export PYTORCH_BUILD_NUMBER=0
 
 export USE_CUDA=1
 export USE_CUDNN=1
-export USE_CUDSS=1
+# cuDSS disabled: PyTorch 2.13.0's cuDSS integration (SparseCsrTensorMath.cu)
+# targets an older cuDSS API; cuDSS 0.7.0.20 renamed its enum types
+# (cudaDataType_t -> cudssDataType_t), so USE_CUDSS=1 fails to compile.
+export USE_CUDSS=0
 export USE_CUSPARSELT=1
 export USE_CUFILE=1
 export USE_SYSTEM_NCCL=1
@@ -49,11 +52,6 @@ export MAX_JOBS="${MAX_JOBS:-$(nproc)}"
 # cuSPARSELt/cuFile dev files live under CUDA_HOME (see build-env Dockerfile).
 export CUSPARSELT_ROOT_DIR="$CUDA_HOME"
 export CUFILE_ROOT_DIR="$CUDA_HOME"
-
-# cuDSS installs into versioned subdirectories (libcudss/13/); PyTorch's
-# FindCUDSS.cmake searches standard include/lib paths.
-export CUDSS_INCLUDE_DIR=/usr/include/libcudss/13
-export CUDSS_LIBRARY=/usr/lib/aarch64-linux-gnu/libcudss/13
 
 python setup.py bdist_wheel
 

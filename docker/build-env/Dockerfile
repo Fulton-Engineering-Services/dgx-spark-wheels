@@ -83,15 +83,15 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 ENV CUFILE_HOME=/usr/local/cuda
 
-# --- cuDNN 9 (deep learning primitives) + cuDSS (sparse direct solver) ---
-# Both resolve from the NVIDIA CUDA network repo (cuda-keyring, already
-# configured by the NGC devel base). cuDNN provides cudnn.h + libcudnn.so;
-# cuDSS provides cudss.h + libcudss.so.  PyTorch auto-enables USE_CUDNN /
-# USE_CUDSS when their headers/libs are found.
+# --- cuDNN 9 (deep learning primitives) ---
+# Resolves from the NVIDIA CUDA network repo (cuda-keyring, already configured
+# by the NGC devel base): provides cudnn.h + libcudnn.so. PyTorch auto-enables
+# USE_CUDNN when the header/lib are found. cuDSS is deliberately NOT installed:
+# cuDSS 0.7.0.20's API (cudssDataType_t etc.) is incompatible with PyTorch
+# 2.13.0's cuDSS integration (see scripts/build/torch.sh).
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libcudnn9-dev-cuda-13 \
-        libcudss0-dev-cuda-13 && \
+        libcudnn9-dev-cuda-13 && \
     rm -rf /var/lib/apt/lists/*
 
 # --- NCCL (system, from NGC base or apt) ---
