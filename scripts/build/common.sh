@@ -58,12 +58,34 @@ PY
   echo "==> package: $PKG_NAME  variant: $CUDA_VARIANT  ref: $PKG_FORK_REF" >&2
 }
 
+# index_wheel_url <name> — print the GitHub Release download URL for a package's
+# variant-substituted wheel from OUR index, or nothing on failure. The URL
+# mirrors generate-index.py and build-wheel.yml's release-tag scheme
+# (<name>-v<public>-cu<variant>). Used by setup_venv so single-wheel dispatches
+# consume our own published torch/triton instead of PyPI.
+index_wheel_url() {
+  python3 - "$1" "$CUDA_VARIANT" "$MANIFEST" <<'PY'
+import json, sys
+name, variant, manifest = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    pkg = next(p for p in json.load(open(manifest))["packages"] if p["name"] == name)
+except (StopIteration, FileNotFoundError, json.JSONDecodeError):
+    sys.exit(1)
+wheel = pkg["wheel"].replace("cu13.3", variant)
+public = pkg.get("public_version") or pkg["version"].split("+", 1)[0]
+repo = "Fulton-Engineering-Services/dgx-spark-wheels"
+print(f"https://github.com/{repo}/releases/download/{name}-v{public}-{variant}/{wheel}")
+PY
+}
+
 setup_venv() {
   python3.12 -m venv "$VENV"
   # shellcheck disable=SC1091
   . "$VENV/bin/activate"
   pip install --upgrade pip setuptools wheel
-  # torch: prefer a locally-built wheel (TORCH_WHEEL artifact), else PyPI cu130.
+  # torch: prefer a locally-built wheel (TORCH_WHEEL artifact), then our own
+  # published index wheel (variant-matching), then PyPI cu130 as a last resort
+  # (only reachable on the very first bootstrap before torch is published).
   # SKIP_TORCH_INSTALL=1 skips torch entirely (used by the torch build itself,
   # which is building torch, not consuming it).
   if [ "${SKIP_TORCH_INSTALL:-0}" = "1" ]; then
@@ -72,15 +94,29 @@ setup_venv() {
     echo "==> installing torch from local wheel: $TORCH_WHEEL" >&2
     pip install "$TORCH_WHEEL"
   else
-    echo "==> installing torch==2.13.0 from PyPI cu130 index" >&2
-    pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+    local torch_url; torch_url="$(index_wheel_url torch)"
+    if [ -n "$torch_url" ] && pip install "$torch_url" 2>/dev/null; then
+      echo "==> installed torch from our index: $(basename "$torch_url")" >&2
+    else
+      echo "==> our torch wheel not published yet; falling back to PyPI cu130" >&2
+      pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+    fi
   fi
-  # triton: optional locally-built wheel (TRITON_WHEEL artifact). PyTorch
-  # declares triton as a normal dependency when built with USE_SYSTEM_TRITON=1,
-  # so downstream wheels install it here when provided.
+  # triton: optional locally-built wheel (TRITON_WHEEL artifact), else our own
+  # published index wheel (variant-matching), else PyPI. PyTorch declares triton
+  # as a normal dependency when built with USE_SYSTEM_TRITON=1, so downstream
+  # wheels install it here when provided.
   if [ -n "${TRITON_WHEEL:-}" ] && [ -f "$TRITON_WHEEL" ]; then
     echo "==> installing triton from local wheel: $TRITON_WHEEL" >&2
     pip install "$TRITON_WHEEL"
+  else
+    local triton_url; triton_url="$(index_wheel_url triton)"
+    if [ -n "$triton_url" ] && pip install "$triton_url" 2>/dev/null; then
+      echo "==> installed triton from our index: $(basename "$triton_url")" >&2
+    else
+      echo "==> our triton wheel not published yet; falling back to PyPI" >&2
+      pip install triton
+    fi
   fi
   pip install ninja packaging wheel setuptools psutil numpy
   echo "==> venv ready at $VENV ($(python --version))" >&2
