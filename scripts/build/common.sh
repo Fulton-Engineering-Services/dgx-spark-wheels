@@ -5,9 +5,14 @@
 #   setup_venv        — create a python3.12 venv with torch (local wheel or cu130) + build deps
 #   clone_fork        — clone the pinned fork into $SRC_DIR
 #
-# Runs inside the ghcr.io build-env:24.04 container (CUDA 13.3.1 devel,
+# Runs inside the ghcr.io build-env:24.04-cu<variant> container (CUDA devel,
 # glibc 2.39, python3.12) on a self-hosted GB10 runner. CUDA is on PATH via
 # the image; a live GPU is present (--gpus all in build-wheel.yml).
+#
+# CUDA_VARIANT (e.g. cu13.3 | cu13.0) selects which train this build belongs
+# to. It defaults to cu13.3 (back-compat for manual dispatch); CI sets it from
+# build-wheel.yml's `cuda` input. It is substituted into the manifest's
+# canonical cu13.3 literals (local segment + wheel filename) by load_pkg.
 
 set -euo pipefail
 
@@ -18,6 +23,9 @@ VENV="$BUILD_DIR/venv"
 SRC_DIR="$BUILD_DIR/src"
 DIST_DIR="$ROOT/dist"
 mkdir -p "$DIST_DIR" "$SRC_DIR"
+
+# Active CUDA train; default to the canonical cu13.3 for manual dispatch.
+CUDA_VARIANT="${CUDA_VARIANT:-cu13.3}"
 
 load_pkg() {
   local name="$1"
@@ -41,7 +49,13 @@ else:
     sys.exit(1)
 PY
 )"
-  echo "==> package: $PKG_NAME  version: $PKG_VERSION  ref: $PKG_FORK_REF" >&2
+  # Variant plumbing: the manifest's cu13.3 literals are the canonical
+  # defaults; substitute the active CUDA_VARIANT into the local segment and
+  # the wheel filename (the token appears exactly once in each). A cu13.3
+  # build is a no-op substitution.
+  PKG_LOCAL_SEG="${PKG_LOCAL_SEG/cu13.3/$CUDA_VARIANT}"
+  PKG_WHEEL="${PKG_WHEEL/cu13.3/$CUDA_VARIANT}"
+  echo "==> package: $PKG_NAME  variant: $CUDA_VARIANT  ref: $PKG_FORK_REF" >&2
 }
 
 setup_venv() {

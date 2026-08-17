@@ -9,61 +9,77 @@ permissions:
   attestations: write
 
 jobs:
-  # --- Phase 1: Triton (needs nothing) ---
+  # --- Phase 1: Triton (needs nothing), both CUDA trains ---
   triton:
+    strategy:
+      max-parallel: 2
+      matrix:
+        cuda: ["13.3", "13.0"]
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: triton
+      cuda: ${{ matrix.cuda }}
     permissions:
       contents: write
       id-token: write
       attestations: write
 
-  # --- Phase 2: PyTorch (needs Triton) ---
+  # --- Phase 2: PyTorch (needs Triton), both CUDA trains ---
   torch:
     needs: triton
+    strategy:
+      max-parallel: 2
+      matrix:
+        cuda: ["13.3", "13.0"]
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: torch
-      triton_wheel: wheel-triton
+      cuda: ${{ matrix.cuda }}
+      triton_wheel: wheel-triton-cu${{ matrix.cuda }}
     permissions:
       contents: write
       id-token: write
       attestations: write
 
-  # --- Phase 3: torchaudio + torchvision (serial, single-GPU runner) ---
+  # --- Phase 3: torchaudio + torchvision, per CUDA train (4 legs) ---
   audio-video:
     needs: torch
     strategy:
-      max-parallel: 1
+      max-parallel: 2
       matrix:
+        cuda: ["13.3", "13.0"]
         package: [torchaudio, torchvision]
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: ${{ matrix.package }}
-      torch_wheel: wheel-torch
+      cuda: ${{ matrix.cuda }}
+      torch_wheel: wheel-torch-cu${{ matrix.cuda }}
     permissions:
       contents: write
       id-token: write
       attestations: write
 
-  # --- Phase 4: Existing wheels rebuilt against from-source torch + triton ---
+  # --- Phase 4: Existing wheels rebuilt against from-source torch + triton,
+  # per CUDA train (12 legs) ---
   existing:
     needs: [torch, triton]
     strategy:
-      max-parallel: 1
+      max-parallel: 2
       matrix:
+        cuda: ["13.3", "13.0"]
         package:
           - flash-attn
           - sageattention
           - sageattn3
           - nunchaku
           - onnxruntime-gpu
+          - flashinfer-python
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: ${{ matrix.package }}
-      torch_wheel: wheel-torch
-      triton_wheel: wheel-triton
+      cuda: ${{ matrix.cuda }}
+      torch_wheel: wheel-torch-cu${{ matrix.cuda }}
+      triton_wheel: wheel-triton-cu${{ matrix.cuda }}
     permissions:
       contents: write
       id-token: write

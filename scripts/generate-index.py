@@ -10,6 +10,11 @@ Produces:
     public/simple/index.html                  (root index, links to each package)
     public/simple/<package>/index.html         (per-package index, links to each wheel)
 
+Each package is emitted once per CUDA variant in abi.cuda_variants (e.g. 13.3
+and 13.0): the wheel filename is derived from the manifest's canonical cu13.3
+literal by token substitution, and the release tag carries the -cu<variant>
+suffix (see abi.local_version_convention in packages.json).
+
 Designed to be run in CI (see .github/workflows/publish-index.yml) and the
 output published via GitHub Pages, so:
 
@@ -41,7 +46,9 @@ def normalize(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def build_index(packages: list[dict], repo: str, out_dir: pathlib.Path) -> None:
+def build_index(
+    packages: list[dict], cuda_variants: list[str], repo: str, out_dir: pathlib.Path
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     root_links = []
@@ -56,16 +63,25 @@ def build_index(packages: list[dict], repo: str, out_dir: pathlib.Path) -> None:
 
         links = []
         for pkg in versions:
-            wheel = pkg["wheel"]
-            version = pkg["version"]
-            # Release tags use the PUBLIC version segment only (no "+local"),
-            # so "+" never lands in a git tag or download URL. The local-version
-            # segment (e.g. +cu13.0torch2.13.glibc235) lives in the wheel
-            # filename/metadata, not the tag. Prefer an explicit
-            # "public_version" field; fall back to stripping "+...".
-            public_version = pkg.get("public_version") or version.split("+", 1)[0]
-            url = f"https://github.com/{repo}/releases/download/{name}-v{public_version}/{wheel}"
-            links.append(f'    <a href="{html.escape(url)}">{html.escape(wheel)}</a><br/>')
+            for variant in cuda_variants:
+                # The manifest's cu13.3 literal is the canonical default; each
+                # variant is produced by token substitution at build time, so
+                # the index mirrors that: both the wheel filename and the
+                # release tag carry the cu<variant> / -cu<variant> suffix.
+                wheel = pkg["wheel"].replace("cu13.3", "cu" + variant)
+                version = pkg["version"]
+                # Release tags use the PUBLIC version segment only (no "+local"),
+                # so "+" never lands in a git tag or download URL -- and always
+                # carry the -cu<variant> suffix so the two trains never collide.
+                # The local-version segment (e.g. +cu13.3torch2.13.glibc239)
+                # lives in the wheel filename/metadata, not the tag. Prefer an
+                # explicit "public_version" field; fall back to stripping "+...".
+                public_version = pkg.get("public_version") or version.split("+", 1)[0]
+                url = (
+                    f"https://github.com/{repo}/releases/download/"
+                    f"{name}-v{public_version}-cu{variant}/{wheel}"
+                )
+                links.append(f'    <a href="{html.escape(url)}">{html.escape(wheel)}</a><br/>')
 
         (pkg_dir / "index.html").write_text(
             INDEX_TEMPLATE.format(
@@ -93,8 +109,13 @@ def main() -> int:
 
     manifest = json.loads(args.manifest.read_text())
     packages = manifest["packages"]
-    build_index(packages, args.repo, args.out_dir)
-    print(f"Wrote index for {len(packages)} package(s) to {args.out_dir}", file=sys.stderr)
+    cuda_variants = manifest.get("abi", {}).get("cuda_variants", ["13.3"])
+    build_index(packages, cuda_variants, args.repo, args.out_dir)
+    print(
+        f"Wrote index for {len(packages)} package(s) x {len(cuda_variants)} "
+        f"variant(s) to {args.out_dir}",
+        file=sys.stderr,
+    )
     return 0
 
 

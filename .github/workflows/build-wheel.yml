@@ -5,8 +5,9 @@ name: Build wheel (self-hosted GB10 runner)
 # any wheel build here: sageattn3/nunchaku probe the live GPU at build time,
 # flash-attn caps MAX_JOBS at 4 (hdim256 backward kernels OOM above ~8), and
 # onnxruntime-gpu is ~90 min on 20 cores with a large build tree. So every
-# wheel builds on the self-hosted GB10 runner inside the build-env:24.04
-# container. See docs/ci.md for runner setup.
+# wheel builds on the self-hosted GB10 runner inside the build-env:24.04-cu<variant>
+# container (variant from the `cuda` input, e.g. 13.3 -> cu13.3). See docs/ci.md
+# for runner setup.
 #
 # Two jobs: "build" runs inside the container (CUDA toolchain + GPU); "release"
 # runs on the bare runner host (no container) so the gh CLI is available for
@@ -27,14 +28,20 @@ on:
         type: choice
         options:
           - flash-attn
-          - sageattention
-          - sageattn3
+          - flashinfer-python
           - nunchaku
           - onnxruntime-gpu
-          - triton
+          - sageattention
+          - sageattn3
           - torch
           - torchaudio
           - torchvision
+          - triton
+      cuda:
+        description: "CUDA variant (maps to build-env:24.04-cu<value>)"
+        required: false
+        type: string
+        default: "13.3"
       torch_wheel:
         description: "Artifact name of a torch wheel built earlier in this run (optional)"
         required: false
@@ -50,6 +57,10 @@ on:
       package:
         required: true
         type: string
+      cuda:
+        required: false
+        type: string
+        default: "13.3"
       torch_wheel:
         required: false
         type: string
@@ -70,7 +81,8 @@ jobs:
     timeout-minutes: 720
     container:
       # GHCR requires lowercase; the org name has uppercase letters.
-      image: ghcr.io/fulton-engineering-services/dgx-spark-wheels/build-env:24.04
+      # Per-variant image tag: build-env:24.04-cu13.3 or build-env:24.04-cu13.0.
+      image: ghcr.io/fulton-engineering-services/dgx-spark-wheels/build-env:24.04-cu${{ inputs.cuda }}
       options: --gpus all --ulimit memlock=-1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -90,6 +102,8 @@ jobs:
           path: wheels/triton
 
       - name: Build ${{ inputs.package }}
+        env:
+          CUDA_VARIANT: cu${{ inputs.cuda }}
         shell: bash
         run: |
           set -euo pipefail
@@ -102,6 +116,8 @@ jobs:
           scripts/build/${{ inputs.package }}.sh
 
       - name: Smoke-test with a real kernel launch
+        env:
+          CUDA_VARIANT: cu${{ inputs.cuda }}
         run: scripts/build/verify-${{ inputs.package }}.sh
 
       - name: Attest build provenance
@@ -112,7 +128,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: wheel-${{ inputs.package }}
+          name: wheel-${{ inputs.package }}-cu${{ inputs.cuda }}
           path: dist/*.whl
           retention-days: 1
 
@@ -129,7 +145,7 @@ jobs:
       - name: Download wheel artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: wheel-${{ inputs.package }}
+          name: wheel-${{ inputs.package }}-cu${{ inputs.cuda }}
           path: dist
 
       - name: Upload to GitHub Release
@@ -138,10 +154,11 @@ jobs:
         run: |
           set -euo pipefail
           # Release tag uses the PUBLIC version segment only (no "+local"),
-          # so "+" never lands in a git tag or download URL. The local-version
-          # segment lives in the wheel filename/metadata.
+          # so "+" never lands in a git tag or download URL — and always
+          # carries the -cu<variant> suffix so the two trains never collide.
+          # The local-version segment lives in the wheel filename/metadata.
           version=$(python3 -c "import json; p=next(p for p in json.load(open('packages.json'))['packages'] if p['name']=='${{ inputs.package }}'); print(p.get('public_version') or p['version'].split('+')[0])")
-          tag="${{ inputs.package }}-v${version}"
+          tag="${{ inputs.package }}-v${version}-cu${{ inputs.cuda }}"
           sha="${{ github.sha }}"
           gh release create "$tag" dist/*.whl --title "$tag" --notes "Built from packages.json at ${sha:0:7}" || \
           gh release upload "$tag" dist/*.whl --clobber

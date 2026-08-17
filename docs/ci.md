@@ -71,7 +71,9 @@ the repo exists on GitHub (the runner is registered to a specific repo URL).
 
 ## Build order for the first release
 
-Strictly, in this order (each gated on the previous):
+Strictly, in this order (each gated on the previous), for **both CUDA trains**
+(`cu13.3` and `cu13.0`) in parallel (`max-parallel: 2` — two GB10 runners now
+exist, so both trains run simultaneously):
 
 1. **Create the four forks** (`pytorch`, `audio`, `vision`, `triton`) under
    `Fulton-Engineering-Services` with the `cuda13.3-aarch64-gb10` branch,
@@ -79,38 +81,44 @@ Strictly, in this order (each gated on the previous):
    pytorch fork, then fill in each `fork_ref` (and the triton version) in
    `packages.json` with the resulting HEAD SHAs.
 
-2. **`build-env-image.yml`** — builds + pushes
-   `ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04` to
-   GHCR. Trigger: `gh workflow run build-env-image.yml`. No GPU needed for the
-   image build, but it runs on the GB10 runner (the CUDA-devel base is
-   multi-GB and blows the free runner's 14 GB disk).
+2. **`build-env-image.yml`** — builds + pushes both variant images
+   (`build-env:24.04-cu13.3` and `build-env:24.04-cu13.0`) to GHCR. Trigger:
+   `gh workflow run build-env-image.yml`. No GPU needed for the image build,
+   but it runs on the GB10 runner (the CUDA-devel base is multi-GB and blows
+   the free runner's 14 GB disk). The two images build in parallel.
 
-3. **`build-all.yml`** — the ordered full-index rebuild. Trigger:
-   `gh workflow run build-all.yml`. This orchestrates the whole dependency
-   chain in one run:
+3. **`build-all.yml`** — the ordered full-index rebuild across both CUDA
+   trains. Trigger: `gh workflow run build-all.yml`. This orchestrates the
+   whole dependency chain in one run, with a two-dimensional matrix
+   (`cuda × package`) at each phase:
    `triton` → `torch` → `torchaudio` + `torchvision` → `flash-attn` +
-   `sageattention` + `sageattn3` + `nunchaku` + `onnxruntime-gpu`.
-   Each stage reuses `build-wheel.yml` via `workflow_call`, passing the
-   `torch_wheel` / `triton_wheel` artifact names so torch-linked wheels
-   compile against the from-source torch instead of PyPI.
+   `sageattention` + `sageattn3` + `nunchaku` + `onnxruntime-gpu` +
+   `flashinfer-python`.
+   Each stage reuses `build-wheel.yml` via `workflow_call`, passing
+   `cuda`, `torch_wheel`-cu`<variant>`, and `triton_wheel`-cu`<variant>`
+   artifact names so torch-linked wheels compile against the from-source
+   torch of the same CUDA train.
 
 4. **`publish-index.yml`** — regenerates the PEP 503 index from `packages.json`
-   and deploys to GitHub Pages. Trigger: `gh workflow run publish-index.yml`.
-   Runs on the free `ubuntu-24.04-arm` runner (just generates HTML).
+   (one entry per package × variant) and deploys to GitHub Pages. Trigger:
+   `gh workflow run publish-index.yml`. Runs on the free `ubuntu-24.04-arm`
+   runner (just generates HTML).
 
 ### Manual single-package builds
 
-`build-wheel.yml` can also be triggered directly:
+`build-wheel.yml` can also be triggered directly, for one package in one CUDA
+train:
 
 ```bash
-gh workflow run build-wheel.yml -f package=flash-attn
+gh workflow run build-wheel.yml -f package=flash-attn -f cuda=13.3
+gh workflow run build-wheel.yml -f package=flash-attn -f cuda=13.0
 ```
 
-Omit `torch_wheel` / `triton_wheel` and the build falls back to PyPI torch
-(`common.sh`). This is fine for a one-off rebuild before the from-source
-torch wheel is published, but the resulting wheel will NOT carry the
-from-source-torch ABI — prefer `build-all.yml` for anything you intend to
-publish.
+`cuda` defaults to `13.3` when omitted. Omit `torch_wheel` / `triton_wheel`
+and the build falls back to PyPI torch (`common.sh`). This is fine for a
+one-off rebuild before the from-source torch wheel is published, but the
+resulting wheel will NOT carry the from-source-torch ABI — prefer
+`build-all.yml` for anything you intend to publish.
 
 ## Which packages need the GB10 runner (and why)
 
@@ -125,6 +133,7 @@ publish.
 | `sageattn3` | yes | `setup.py` probes live GPU compute capability → `sm_121a` |
 | `nunchaku` | yes | `setup.py` probes live GPU → `sm_121a`; needs `--gpus all` |
 | `onnxruntime-gpu` | yes | ~90 min on 20 cores; large build tree exceeds 14 GB disk |
+| `flashinfer-python` | yes | JIT package (no nvcc); kept on GB10 for simplicity; needs `--gpus all` at verify time |
 
 A future hardening (per the project strategy) is to patch `setup.py` in
 sageattn3/nunchaku to accept an explicit `TORCH_CUDA_ARCH_LIST` override, which

@@ -1,9 +1,10 @@
 name: Build build-env image
 
-# Builds and publishes the build-env container image to GHCR. The CUDA-devel
+# Builds and publishes the build-env container images to GHCR — one per CUDA
+# variant (build-env:24.04-cu13.3 and build-env:24.04-cu13.0). The CUDA-devel
 # base is multi-GB and blows the free arm runner's 14 GB disk, so this runs on
 # the self-hosted GB10 runner (no GPU needed for the image build itself, just
-# disk). Wheel-build jobs then `container:` this image.
+# disk). Wheel-build jobs then `container:` the variant-matching image.
 
 on:
   push:
@@ -19,6 +20,15 @@ permissions:
 jobs:
   build-and-push:
     runs-on: [self-hosted, gb10]
+    strategy:
+      matrix:
+        include:
+          - cuda: "13.3"
+            cuda_image_tag: "13.3.1"
+            cuda_pkg_suffix: "13-3"
+          - cuda: "13.0"
+            cuda_image_tag: "13.0.3"
+            cuda_pkg_suffix: "13-0"
     steps:
       - name: Fix workspace permissions
         # Container build jobs run as root and leave root-owned files in the
@@ -39,10 +49,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Build and push build-env:24.04
+      - name: Build and push build-env:24.04-cu${{ matrix.cuda }}
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: docker/build-env
           push: true
-          tags: ghcr.io/${{ steps.repo.outputs.name }}/build-env:24.04
+          build-args: |
+            CUDA_IMAGE_TAG=${{ matrix.cuda_image_tag }}
+            CUDA_PKG_SUFFIX=${{ matrix.cuda_pkg_suffix }}
+          tags: ghcr.io/${{ steps.repo.outputs.name }}/build-env:24.04-cu${{ matrix.cuda }}
           provenance: false

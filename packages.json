@@ -4,11 +4,12 @@
     "arch": "aarch64",
     "python": "cp312",
     "cuda": "13.3",
+    "cuda_variants": ["13.3", "13.0"],
     "torch": "2.13.0+cu133",
     "compute_capability": "12.1",
     "glibc_floor": "2.39",
-    "build_container": "ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04",
-    "local_version_convention": "<public_version>+cu13.3torch2.13.glibc239 (torch-linked packages); +cu13.3.glibc239 (torch itself and onnxruntime-gpu, which link CUDA but are not compiled against an external torch). Wheel filenames carry the local segment; release tags use the public version only (no +local)."
+    "build_container": "ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu13.3 (cu13.3) / build-env:24.04-cu13.0 (cu13.0)",
+    "local_version_convention": "<public_version>+cu<var>torch2.13.glibc239 (torch-linked packages); +cu<var>.glibc239 (torch itself and onnxruntime-gpu, which link CUDA but are not compiled against an external torch). <var> is one of cuda_variants (13.3 | 13.0). Wheel filenames carry the local segment; release tags are <pkg>-v<public>-cu<var> (no +local, and always variant-suffixed so the two trains never collide). The cu13.3 literals in this file are the canonical defaults; cu13.0 wheels/tags are produced by token substitution at build/index time."
   },
   "packages": [
     {
@@ -143,6 +144,21 @@
       "upstream_license": "MIT",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04), ~90 min on 20 cores",
       "notes": "Fork carries CUDA-13/aarch64 build-compatibility patches (cub/thrust compat, CUTLASS version-check) applied automatically at configure time; no manual patching needed. Rebuilt with --cuda_version 13.3."
+    },
+    {
+      "name": "flashinfer-python",
+      "version": "0.6.17+cu13.3torch2.13.glibc239",
+      "public_version": "0.6.17",
+      "wheel": "flashinfer_python-0.6.17+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121 (JIT at runtime)",
+      "fork": "https://github.com/Fulton-Engineering-Services/flashinfer",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "a0a6b019b9b27d49d209f85d028a1ae5a9b347d7",
+      "upstream_tag": "v0.6.17",
+      "upstream": "https://github.com/flashinfer-ai/flashinfer",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
+      "notes": "Distribution name is flashinfer-python (upstream's JIT package). Custom PEP 517 build_backend.py -- kernels compile at runtime via cutlass-dsl + tvm-ffi, no nvcc build. flashinfer-cubin is NOT built: upstream artifactory has no sm_120/sm_121 cubins (only sm_100a/103a/110a), so it would publish an empty/broken package on GB10. Built with BUILD_NVEP=0 (skips the nvcc/meson/UCX moe_ep backends) and --no-build-isolation --no-deps. Verify installs the nvidia-cutlass-dsl[cu13] extra (the base requirements pull cu12 libs by default; GB10 needs cu13). torch-linked package -- needs the from-source torch at build AND runtime."
     }
   ]
 }

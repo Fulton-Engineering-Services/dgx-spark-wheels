@@ -7,14 +7,18 @@ Reproduce it before rebuilding anything.
 |---|---|
 | Host arch | `aarch64` |
 | GPU | GB10-class, compute capability `(12, 1)` = `sm_121` |
-| CUDA (`nvcc`) | `13.3.1` |
+| CUDA (`nvcc`) | `13.3.1` (cu13.3 train) / `13.0.3` (cu13.0 train) |
 | Python | `3.12` (`cp312` wheels only) |
-| torch | `2.13.0+cu133` (built from source against CUDA 13.3.1) |
+| torch | `2.13.0+cu133` (built from source against the train's CUDA) |
 | triton | built from source (see packages.json for pinned fork/ref) |
 | glibc floor | `2.39` (Ubuntu 24.04) |
 
-The build-env container image is `ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`,
-built from `docker/build-env/Dockerfile` (`FROM nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04`).
+The build-env container images are
+`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu13.3`
+and `build-env:24.04-cu13.0`, built from `docker/build-env/Dockerfile`
+(parametrized via `CUDA_IMAGE_TAG` / `CUDA_PKG_SUFFIX` build-args — one image
+per CUDA train). The Dockerfile is `FROM nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04`
+by default; the `cu13.0` image substitutes `13.0.3`.
 
 ## Reproducing with the build-env container
 
@@ -23,7 +27,7 @@ built from `docker/build-env/Dockerfile` (`FROM nvcr.io/nvidia/cuda:13.3.1-devel
 # For local iteration, pull the image and exec into it:
 docker run --rm --gpus all --ulimit memlock=-1 -it \
     -v $(pwd):/src -w /src \
-    ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04 \
+    ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu13.3 \
     bash
 
 # Inside the container, create a venv with the from-source torch (or PyPI fallback):
@@ -43,9 +47,9 @@ Ubuntu 24.04 runtime (glibc 2.39) with `GLIBC_2.41' not found`, even when
 CUDA/torch/Python all match exactly.
 
 **Policy for this index: build every wheel inside a container matching the
-oldest glibc we support** (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`,
-glibc 2.39), not on the bare host. (That image is `FROM` the
-`nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04` base with Python 3.12 and
+oldest glibc we support** (`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu13.3`
+or `-cu13.0`, glibc 2.39), not on the bare host. (That image is `FROM` the
+`nvcr.io/nvidia/cuda:13.x-devel-ubuntu24.04` base with Python 3.12 and
 build deps — see `docker/build-env/Dockerfile`.)
 
 ## ciSPARSELt and cuFile (GDS) paths
@@ -181,12 +185,29 @@ automatically when the `USE_CUSPARSELT=1` / `USE_CUFILE=1` flags are set.
   export CUDNN_HOME="$(python -c "import site,os; print(os.path.join(site.getsitepackages()[0],'nvidia','cudnn'))")"
   export LD_LIBRARY_PATH="$CUDNN_HOME/lib:$LD_LIBRARY_PATH"
   ./build.sh --config Release --build_wheel --use_cuda --skip_tests \
-    --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version 13.3 \
+    --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version "${CUDA_VARIANT#cu}" \
     --parallel "$(nproc)" \
     --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF CMAKE_POLICY_VERSION_MINIMUM=3.5
   ```
 - cuDNN 9 ships inside the build venv's `nvidia-cudnn-cu13` package, not a system path.
 - ~90 min on 20 cores.
+
+### `flashinfer-python`
+
+- Fork pinned to tag `v0.6.17`, branch `cuda13-aarch64-gb10`.
+- **`flashinfer-python` only** — a JIT package (custom PEP 517 `build_backend.py`);
+  kernels compile at runtime via cutlass-dsl + tvm-ffi, not a monolithic nvcc
+  build. Do NOT build `flashinfer-cubin`: upstream artifactory has no
+  `sm_120`/`sm_121` cubins (only `sm_100a`/`103a`/`110a`).
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  pip install "apache-tvm-ffi>=0.1.6,!=0.1.8,<0.2"
+  BUILD_NVEP=0 pip wheel --no-build-isolation --no-deps -w dist .
+  ```
+- `BUILD_NVEP=0` skips the nvcc/meson/UCX `moe_ep` backends (NIXL-EP + NCCL-EP).
+- Verify installs the `nvidia-cutlass-dsl[cu13]` extra: the base requirements
+  pull cu12 libs by default; GB10 needs the cu13 libs.
 
 ## Verification
 

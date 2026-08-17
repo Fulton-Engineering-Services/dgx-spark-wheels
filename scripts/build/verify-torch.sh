@@ -7,15 +7,18 @@ load_pkg torch
 . "$VENV/bin/activate"
 pip install "$DIST_DIR/$PKG_WHEEL"
 
-python3 - <<'PY'
+# Variant-aware CUDA assertion: cu13.3 -> 13.3, cu13.0 -> 13.0.
+EXPECTED_CUDA="${CUDA_VARIANT#cu}" python3 - <<'PY'
+import os
 import torch
 
 assert torch.cuda.is_available(), "no CUDA device"
 cc = torch.cuda.get_device_capability()
 assert cc == (12, 1), f"expected sm_121, got {cc}"
 
+expected_cuda = os.environ["EXPECTED_CUDA"]
 cuda = torch.version.cuda
-assert cuda is not None and cuda.startswith("13.3"), f"expected CUDA 13.3, got {cuda}"
+assert cuda is not None and cuda.startswith(expected_cuda), f"expected CUDA {expected_cuda}, got {cuda}"
 
 # cuSPARSELt backend present when built with USE_CUSPARSELT=1.
 assert hasattr(torch.backends, "cusparselt"), "cuSPARSELt backend missing"

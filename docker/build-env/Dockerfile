@@ -3,14 +3,25 @@
 # Pinned to Ubuntu 24.04 / glibc 2.39 — the oldest glibc this index supports.
 # Every wheel built here imports cleanly in 24.04+ containers and on bare hosts.
 #
-# Toolchain: CUDA 13.3.1 devel + Python 3.12 + cuSPARSELt + cuFile (GDS) +
+# Toolchain: CUDA devel + Python 3.12 + cuSPARSELt + cuFile (GDS) +
 # PyTorch/Triton build deps. torch and per-package runtime deps are installed
 # into a per-build venv by scripts/build/<pkg>.sh (torch is version-coupled
 # to the wheels, so it is NOT baked in here).
 #
-# Tag published to GHCR: build-env:24.04
+# Parametrized for the two CUDA trains:
+#   CUDA_IMAGE_TAG  — the CUDA devel image's version suffix (13.3.1 | 13.0.3)
+#   CUDA_PKG_SUFFIX — the version-pinned apt package suffix (13-3 | 13-0)
+# The minor-unversioned NVIDIA packages (libcudnn9-dev-cuda-13, cusparselt-cuda-13,
+# libnccl2/libnccl-dev) resolve against whichever base-image CUDA is selected.
+#
+# Tags published to GHCR (one per variant):
+#   build-env:24.04-cu13.3  (CUDA 13.3.1)  — the default build args
+#   build-env:24.04-cu13.0  (CUDA 13.0.3)
 
-FROM nvcr.io/nvidia/cuda:13.3.1-devel-ubuntu24.04
+ARG CUDA_IMAGE_TAG=13.3.1
+FROM nvcr.io/nvidia/cuda:${CUDA_IMAGE_TAG}-devel-ubuntu24.04
+
+ARG CUDA_PKG_SUFFIX=13-3
 
 # Ubuntu 24.04 ships cmake 3.28.3 (onnxruntime requires >= 3.28) and
 # Python 3.12 natively — no Kitware PPA, no deadsnakes PPA needed.
@@ -69,17 +80,18 @@ ENV CUSPARSELT_HOME=/usr/local/cuda
 
 # --- cuFile / GPUDirect Storage ---
 # The NGC base image already configures the NVIDIA CUDA network repo
-# (cuda-keyring), so libcufile-dev-13-3 resolves directly. It installs the
-# userspace cuFile header + shared/static libs under
-# /usr/local/cuda-13.3/targets/sbsa-linux. Do NOT install `nvidia-gds`: that
-# metapackage drags in nvidia-fs-dkms (the nvidia_fs.ko kernel module), which
-# cannot build inside a container without kernel headers — the kernel module
-# lives on the DGX host (DGX-OS). A build container only needs the header +
-# .so to compile/link PyTorch with USE_CUFILE=1. Hard-fail rather than
-# silently ship a torch without GDS.
+# (cuda-keyring), so the version-pinned cuFile dev package
+# (libcufile-dev-${CUDA_PKG_SUFFIX}: 13-3 for CUDA 13.3, 13-0 for CUDA 13.0)
+# resolves directly. It installs the userspace cuFile header + shared/static
+# libs under /usr/local/cuda-<ver>/targets/sbsa-linux. Do NOT install
+# `nvidia-gds`: that metapackage drags in nvidia-fs-dkms (the nvidia_fs.ko
+# kernel module), which cannot build inside a container without kernel
+# headers — the kernel module lives on the DGX host (DGX-OS). A build
+# container only needs the header + .so to compile/link PyTorch with
+# USE_CUFILE=1. Hard-fail rather than silently ship a torch without GDS.
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libcufile-dev-13-3 && \
+        libcufile-dev-${CUDA_PKG_SUFFIX} && \
     rm -rf /var/lib/apt/lists/*
 ENV CUFILE_HOME=/usr/local/cuda
 

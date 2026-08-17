@@ -3,12 +3,12 @@
 A `pip`-installable package index of prebuilt Python wheels for
 **NVIDIA GB10** (the chip in the DGX Spark and its OEM variants — ASUS
 Ascent GX10, and others) — specifically for packages that publish **no**
-upstream wheel matching this platform's ABI: `linux_aarch64`, CUDA 13.3,
-`torch==2.13.0+cu133` (built from source), `cp312` (Python 3.12), compute
-capability `(12, 1)` / `sm_121`.
+upstream wheel matching this platform's ABI: `linux_aarch64`, CUDA **13.3**
+or **13.0** (two parallel trains), `torch==2.13.0+cu133` (built from source),
+`cp312` (Python 3.12), compute capability `(12, 1)` / `sm_121`.
 
 ```bash
-pip install triton torch torchaudio torchvision flash-attn sageattention nunchaku onnxruntime-gpu \
+pip install triton torch torchaudio torchvision flash-attn sageattention nunchaku onnxruntime-gpu flashinfer-python \
     --extra-index-url https://Fulton-Engineering-Services.github.io/dgx-spark-wheels/simple/
 ```
 
@@ -56,6 +56,12 @@ Every wheel in this index is:
 | `sageattn3` | 1.0.0+cu13.3torch2.13.glibc239 | `sm_121a` (auto-detected) | No | same fork, `sageattention3_blackwell/` subdir |
 | `nunchaku` | 1.2.1+cu13.3torch2.13.glibc239 | `sm_121a` (auto-detected) | No | [fork](https://github.com/Fulton-Engineering-Services/nunchaku) `cuda13-aarch64-gb10` |
 | `onnxruntime-gpu` | 1.22.0+cu13.3.glibc239 | generic (no arch pin) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/onnxruntime) `cuda13-aarch64-gb10` |
+| `flashinfer-python` | 0.6.17+cu13.3torch2.13.glibc239 | `sm_121` (JIT at runtime) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/flashinfer) `cuda13-aarch64-gb10` |
+
+Every package above is published in **two CUDA variants** (`cu13.3` and
+`cu13.0`); the table shows the canonical `cu13.3` version. The variant lives
+in the wheel's local-version segment and in the release tag's `-cu<variant>`
+suffix (see below).
 
 See [`packages.json`](packages.json) for the machine-readable manifest (used
 to generate the index) and [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md)
@@ -66,9 +72,12 @@ for the license each package is redistributed under.
 > glibc floor — so a naive `pip install` can silently pull a wheel that
 > imports but launches the wrong kernels. The local-version segment encodes
 > the real ABI the wheel was built against, making the filename
-> self-diagnosing. Release tags use the public version only (no `+local`),
-> so `pip install flash-attn` still resolves to the latest; the suffix lives
-> in the wheel metadata where `pip show flash-attn` reports it.
+> self-diagnosing. Release tags use the public version plus a **`-cu<variant>`
+> suffix** (e.g. `flash-attn-v2.8.3.post1-cu13.3`, `torch-v2.13.0-cu13.0`) —
+> never the `+local` segment, so `+` never lands in a git tag or download
+> URL, and the two CUDA trains never collide. `pip install flash-attn`
+> still resolves to the latest; the full suffix lives in the wheel metadata
+> where `pip show flash-attn` reports it.
 
 ## Before you install: run the doctor
 
@@ -124,7 +133,8 @@ share one physical pool here.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version: fork upstream, pin
 a branch, build inside the pinned container image
-(`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04`), verify with a real
+(`ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu13.3`
+or `build-env:24.04-cu13.0`, one per CUDA train), verify with a real
 kernel launch, open a PR adding an entry to `packages.json` plus the CI
 workflow reference.
 

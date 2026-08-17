@@ -27,7 +27,7 @@ export LD_LIBRARY_PATH="$CUDNN_HOME/lib:${LD_LIBRARY_PATH:-}"
 
 ./build.sh --config Release --build_wheel --use_cuda --skip_tests \
   --allow_running_as_root \
-  --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version 13.3 \
+  --cuda_home "$CUDA_HOME" --cudnn_home "$CUDNN_HOME" --cuda_version "${CUDA_VARIANT#cu}" \
   --parallel "$(nproc)" \
   --cmake_extra_defines CMAKE_CUDA_ARCHITECTURES=120 onnxruntime_BUILD_UNIT_TESTS=OFF CMAKE_POLICY_VERSION_MINIMUM=3.5
 
