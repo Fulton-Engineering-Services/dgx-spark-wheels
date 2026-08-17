@@ -11,6 +11,14 @@ setup_venv
 clone_fork
 cd "$(src_dir)"
 
+# flashinfer vendors its JIT kernel headers (cccl, cutlass, spdlog) from git
+# submodules into the wheel as flashinfer/data/*. The shallow clone does NOT
+# fetch them; without this the wheel is missing the CCCL >= 3.x headers
+# (cuda::fast_mod_div), and the runtime JIT compile falls back to the
+# CTK-bundled CCCL and fails with "qualified name is not allowed"
+# (upstream issue #3159). Same submodule requirement as torch/nunchaku/ort.
+git submodule update --init --recursive
+
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 

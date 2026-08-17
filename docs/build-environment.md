@@ -203,9 +203,16 @@ automatically when the `USE_CUSPARSELT=1` / `USE_CUFILE=1` flags are set.
   ```bash
   export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
   pip install "apache-tvm-ffi>=0.1.6,!=0.1.8,<0.2"
+  git submodule update --init --recursive
   BUILD_NVEP=0 pip wheel --no-build-isolation --no-deps -w dist .
   ```
 - `BUILD_NVEP=0` skips the nvcc/meson/UCX `moe_ep` backends (NIXL-EP + NCCL-EP).
+- **`git submodule update --init --recursive` is mandatory** — the JIT kernel
+  headers (`cccl`, `cutlass`, `spdlog`) are vendored into the wheel from git
+  submodules as `flashinfer/data/*`. Without it the wheel ships empty data
+  dirs, and the runtime JIT compile falls back to the CTK-bundled CCCL, which
+  lacks `cuda::fast_mod_div` (upstream issue #3159) and fails with
+  `qualified name is not allowed`.
 - Verify installs the `nvidia-cutlass-dsl[cu13]` extra: the base requirements
   pull cu12 libs by default; GB10 needs the cu13 libs.
 
