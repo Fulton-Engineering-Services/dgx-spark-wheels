@@ -159,6 +159,36 @@
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
       "notes": "Distribution name is flashinfer-python (upstream's JIT package). Pure-Python wheel, tagged py3-none-any (NOT cp312-linux_aarch64): custom PEP 517 build_backend.py -- kernels compile at runtime via cutlass-dsl + tvm-ffi, so there is no compiled extension at install time and setuptools marks the wheel root-is-pure. The +cu<variant>torch2.13.glibc239 local segment still records the environment it was built/verified against (the JIT-compiled kernels link glibc at runtime). The JIT kernel headers (cccl, cutlass, spdlog) are vendored from git submodules into flashinfer/data/* -- the build MUST run git submodule update --init --recursive, or the wheel ships empty data dirs and the runtime JIT falls back to the CTK CCCL (missing cuda::fast_mod_div, upstream issue #3159). flashinfer-cubin is NOT built: upstream artifactory has no sm_120/sm_121 cubins (only sm_100a/103a/110a), so it would publish an empty/broken package on GB10. Built with BUILD_NVEP=0 (skips the nvcc/meson/UCX moe_ep backends) and --no-build-isolation --no-deps. Verify installs the nvidia-cutlass-dsl[cu13] extra (the base requirements pull cu12 libs by default; GB10 needs cu13). Needs the from-source torch at build AND runtime."
+    },
+    {
+      "name": "mamba-ssm",
+      "version": "2.3.2.post1+cu13.3torch2.13.glibc239",
+      "public_version": "2.3.2.post1",
+      "wheel": "mamba_ssm-2.3.2.post1+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121 (compiled selective_scan_cuda; setup.py gencodes sm_75..sm_121 when nvcc >= 13.0)",
+      "fork": "https://github.com/Fulton-Engineering-Services/mamba",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "a14b1dff0454a3bc27d9eb31355dc01e4b2490ec",
+      "upstream_tag": "v2.3.2.post1",
+      "upstream": "https://github.com/state-spaces/mamba",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
+      "notes": "One compiled CUDA extension (selective_scan_cuda) built via torch.utils.cpp_extension; setup.py's gencode list includes sm_121 for nvcc >= 13.0, so no arch patch needed. MAMBA_FORCE_BUILD=TRUE disables setup.py's prebuilt-wheel download shortcut (CachedWheelsCommand). Runtime deps (tilelang==0.1.8, quack-kernels>=0.3.4, transformers, apache-tvm-ffi<=0.1.9, triton>=3.5.0, einops) all have aarch64 wheels; causal_conv1d is commented out upstream (replaced by tilelang/quack-kernels in the 2.3.x line). torch-linked package -- needs the from-source torch at build AND runtime."
+    },
+    {
+      "name": "causal-conv1d",
+      "version": "1.6.2.post1+cu13.3torch2.13.glibc239",
+      "public_version": "1.6.2.post1",
+      "wheel": "causal_conv1d-1.6.2.post1+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121 (compiled causal_conv1d_cuda; setup.py gencodes sm_75..sm_121 when nvcc >= 13.0)",
+      "fork": "https://github.com/Fulton-Engineering-Services/causal-conv1d",
+      "fork_branch": "cuda13-aarch64-gb10",
+      "fork_ref": "4f6ae4e26ae5fe8af9372f8d312ab25cc4595223",
+      "upstream_tag": "v1.6.2.post1",
+      "upstream": "https://github.com/Dao-AILab/causal-conv1d",
+      "upstream_license": "BSD-3-Clause",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
+      "notes": "One compiled CUDA extension (causal_conv1d_cuda) built via torch.utils.cpp_extension; setup.py's gencode list includes sm_121 for nvcc >= 13.0. CAUSAL_CONV1D_FORCE_BUILD=TRUE skips the prebuilt-wheel download shortcut (CachedWheelsCommand — Dao-AILab publishes zero binary wheels, source-only on PyPI). Minimal install_requires (torch, packaging, ninja); no triton or submodule deps. Critical runtime dep of mamba-ssm (Mamba v1 conv1d + v2 SSD fast paths); mamba-ssm comments it out of install_requires but imports it everywhere. torch-linked package."
     }
   ]
 }

@@ -216,6 +216,43 @@ automatically when the `USE_CUSPARSELT=1` / `USE_CUFILE=1` flags are set.
 - Verify installs the `nvidia-cutlass-dsl[cu13]` extra: the base requirements
   pull cu12 libs by default; GB10 needs the cu13 libs.
 
+### `mamba-ssm`
+
+- Fork pinned to tag `v2.3.2.post1`, branch `cuda13-aarch64-gb10`.
+- One compiled CUDA extension (`selective_scan_cuda`) via
+  `torch.utils.cpp_extension`. setup.py's gencode list already includes
+  `sm_121` for nvcc >= 13.0 — no arch patch.
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  MAMBA_FORCE_BUILD=TRUE python setup.py bdist_wheel
+  ```
+- `MAMBA_FORCE_BUILD=TRUE` disables setup.py's prebuilt-wheel download shortcut
+  (`CachedWheelsCommand`).
+- Runtime deps all have aarch64 wheels (`tilelang==0.1.8` manylinux_2_34,
+  `quack-kernels` py3-none-any, `transformers` py3-none-any, `apache-tvm-ffi`,
+  `triton>=3.5.0`). `causal_conv1d` is commented out of `install_requires`
+  (upstream migrated Mamba3 to tilelang/quack-kernels) but is still imported by
+  the Mamba v1/v2 fast paths — install it from this index for full speed.
+
+### `causal-conv1d`
+
+- Fork pinned to tag `v1.6.2.post1`, branch `cuda13-aarch64-gb10`.
+- One compiled CUDA extension (`causal_conv1d_cuda`). setup.py's gencode list
+  already includes `sm_121` for nvcc >= 13.0 — no arch patch.
+- Build:
+  ```bash
+  export CUDA_HOME=/usr/local/cuda PATH="$CUDA_HOME/bin:$PATH"
+  CAUSAL_CONV1D_FORCE_BUILD=TRUE python setup.py bdist_wheel
+  ```
+- `CAUSAL_CONV1D_FORCE_BUILD=TRUE` disables the prebuilt-wheel download
+  shortcut — Dao-AILab publishes **zero** binary wheels (source-only on PyPI),
+  which is why this package exists in the index.
+- Minimal `install_requires` (`torch`, `packaging`, `ninja`); no triton or
+  submodule deps.
+- Critical runtime dep of `mamba-ssm` (Mamba v1 conv1d + Mamba2 SSD fast path
+  + varlen inference).
+
 ## Verification
 
 Every wheel is smoke-tested with a real CUDA op before being published, not

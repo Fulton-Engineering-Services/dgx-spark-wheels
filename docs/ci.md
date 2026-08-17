@@ -93,7 +93,7 @@ exist, so both trains run simultaneously):
    (`cuda × package`) at each phase:
    `triton` → `torch` → `torchaudio` + `torchvision` → `flash-attn` +
    `sageattention` + `sageattn3` + `nunchaku` + `onnxruntime-gpu` +
-   `flashinfer-python`.
+   `flashinfer-python` + `mamba-ssm` + `causal-conv1d`.
    Each stage reuses `build-wheel.yml` via `workflow_call`, passing
    `cuda`, `torch_wheel`-cu`<variant>`, and `triton_wheel`-cu`<variant>`
    artifact names so torch-linked wheels compile against the from-source
@@ -134,6 +134,8 @@ resulting wheel will NOT carry the from-source-torch ABI — prefer
 | `nunchaku` | yes | `setup.py` probes live GPU → `sm_121a`; needs `--gpus all` |
 | `onnxruntime-gpu` | yes | ~90 min on 20 cores; large build tree exceeds 14 GB disk |
 | `flashinfer-python` | yes | JIT package (no nvcc); kept on GB10 for simplicity; needs `--gpus all` at verify time |
+| `mamba-ssm` | yes | compiled `selective_scan_cuda` ext; needs `--gpus all` at verify time |
+| `causal-conv1d` | yes | compiled `causal_conv1d_cuda` ext; needs `--gpus all` at verify time |
 
 A future hardening (per the project strategy) is to patch `setup.py` in
 sageattn3/nunchaku to accept an explicit `TORCH_CUDA_ARCH_LIST` override, which

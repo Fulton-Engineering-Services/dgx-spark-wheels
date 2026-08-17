@@ -27,8 +27,10 @@ on:
         required: true
         type: choice
         options:
+          - causal-conv1d
           - flash-attn
           - flashinfer-python
+          - mamba-ssm
           - nunchaku
           - onnxruntime-gpu
           - sageattention
