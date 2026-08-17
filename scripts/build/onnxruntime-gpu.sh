@@ -16,6 +16,11 @@ git submodule update --init --recursive
 
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
+# CUDA 13.3 nvcc is stricter about integer sign conversion in the int4
+# quantization kernel (matmul_4bits.cu) than the CUDA 12.x toolchain
+# onnxruntime 1.22.0 targets. Suppress cudafe diag #68 (sign conversion),
+# mirroring onnxruntime's own -Xcudafe --diag_suppress list in cmake/CMakeLists.txt.
+export NVCC_APPEND_FLAGS="-Xcudafe --diag_suppress=68"
 CUDNN_HOME="$(python -c "import site,os; print(os.path.join(site.getsitepackages()[0],'nvidia','cudnn'))")"
 export CUDNN_HOME
 export LD_LIBRARY_PATH="$CUDNN_HOME/lib:${LD_LIBRARY_PATH:-}"
