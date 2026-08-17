@@ -149,7 +149,7 @@
       "name": "flashinfer-python",
       "version": "0.6.17+cu13.3torch2.13.glibc239",
       "public_version": "0.6.17",
-      "wheel": "flashinfer_python-0.6.17+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "wheel": "flashinfer_python-0.6.17+cu13.3torch2.13.glibc239-py3-none-any.whl",
       "arch_target": "sm_121 (JIT at runtime)",
       "fork": "https://github.com/Fulton-Engineering-Services/flashinfer",
       "fork_branch": "cuda13-aarch64-gb10",
@@ -158,7 +158,7 @@
       "upstream": "https://github.com/flashinfer-ai/flashinfer",
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
-      "notes": "Distribution name is flashinfer-python (upstream's JIT package). Custom PEP 517 build_backend.py -- kernels compile at runtime via cutlass-dsl + tvm-ffi, no nvcc build. flashinfer-cubin is NOT built: upstream artifactory has no sm_120/sm_121 cubins (only sm_100a/103a/110a), so it would publish an empty/broken package on GB10. Built with BUILD_NVEP=0 (skips the nvcc/meson/UCX moe_ep backends) and --no-build-isolation --no-deps. Verify installs the nvidia-cutlass-dsl[cu13] extra (the base requirements pull cu12 libs by default; GB10 needs cu13). torch-linked package -- needs the from-source torch at build AND runtime."
+      "notes": "Distribution name is flashinfer-python (upstream's JIT package). Pure-Python wheel, tagged py3-none-any (NOT cp312-linux_aarch64): custom PEP 517 build_backend.py -- kernels compile at runtime via cutlass-dsl + tvm-ffi, so there is no compiled extension at install time and setuptools marks the wheel root-is-pure. The +cu<variant>torch2.13.glibc239 local segment still records the environment it was built/verified against (the JIT-compiled kernels link glibc at runtime). flashinfer-cubin is NOT built: upstream artifactory has no sm_120/sm_121 cubins (only sm_100a/103a/110a), so it would publish an empty/broken package on GB10. Built with BUILD_NVEP=0 (skips the nvcc/meson/UCX moe_ep backends) and --no-build-isolation --no-deps. Verify installs the nvidia-cutlass-dsl[cu13] extra (the base requirements pull cu12 libs by default; GB10 needs cu13). Needs the from-source torch at build AND runtime."
     }
   ]
 }
