@@ -1,7 +1,17 @@
 name: Build all wheels (ordered, from-source toolchain)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      cuda_train:
+        description: "CUDA train(s) to build: all, 13.3, or 13.0"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - "13.3"
+          - "13.0"
 
 permissions:
   contents: write
@@ -9,12 +19,12 @@ permissions:
   attestations: write
 
 jobs:
-  # --- Phase 1: Triton (needs nothing), both CUDA trains ---
+  # --- Phase 1: Triton (needs nothing) ---
   triton:
     strategy:
       max-parallel: 2
       matrix:
-        cuda: ["13.3", "13.0"]
+        cuda: ${{ fromJSON(inputs.cuda_train == 'all' && '["13.3", "13.0"]' || format('["{0}"]', inputs.cuda_train)) }}
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: triton
@@ -24,13 +34,13 @@ jobs:
       id-token: write
       attestations: write
 
-  # --- Phase 2: PyTorch (needs Triton), both CUDA trains ---
+  # --- Phase 2: PyTorch (needs Triton) ---
   torch:
     needs: triton
     strategy:
       max-parallel: 2
       matrix:
-        cuda: ["13.3", "13.0"]
+        cuda: ${{ fromJSON(inputs.cuda_train == 'all' && '["13.3", "13.0"]' || format('["{0}"]', inputs.cuda_train)) }}
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: torch
@@ -41,13 +51,13 @@ jobs:
       id-token: write
       attestations: write
 
-  # --- Phase 3: torchaudio + torchvision, per CUDA train (4 legs) ---
+  # --- Phase 3: torchaudio + torchvision, per CUDA train (2 or 4 legs) ---
   audio-video:
     needs: torch
     strategy:
       max-parallel: 2
       matrix:
-        cuda: ["13.3", "13.0"]
+        cuda: ${{ fromJSON(inputs.cuda_train == 'all' && '["13.3", "13.0"]' || format('["{0}"]', inputs.cuda_train)) }}
         package: [torchaudio, torchvision]
     uses: ./.github/workflows/build-wheel.yml
     with:
@@ -60,13 +70,13 @@ jobs:
       attestations: write
 
   # --- Phase 4: Existing wheels rebuilt against from-source torch + triton,
-  # per CUDA train (12 legs) ---
+  # per CUDA train (6 or 12 legs) ---
   existing:
     needs: [torch, triton]
     strategy:
       max-parallel: 2
       matrix:
-        cuda: ["13.3", "13.0"]
+        cuda: ${{ fromJSON(inputs.cuda_train == 'all' && '["13.3", "13.0"]' || format('["{0}"]', inputs.cuda_train)) }}
         package:
           - flash-attn
           - sageattention
