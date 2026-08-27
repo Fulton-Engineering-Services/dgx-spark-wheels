@@ -92,8 +92,8 @@ ARG MOONCAKE_REF
 # mooncake links against UCX at build time, so make our UCX install visible.
 COPY --from=ucx-builder /opt/ucx /opt/ucx
 ENV PATH=/opt/ucx/bin:${PATH}
-ENV LD_LIBRARY_PATH=/opt/ucx/lib:${LD_LIBRARY_PATH}
-ENV LIBRARY_PATH=/opt/ucx/lib:${LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/opt/ucx/lib:${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+ENV LIBRARY_PATH=/opt/ucx/lib:${CUDA_HOME}/lib64:${LIBRARY_PATH}
 ENV PKG_CONFIG_PATH=""
 ENV PKG_CONFIG_PATH=/opt/ucx/lib/pkgconfig:${PKG_CONFIG_PATH}
 
@@ -107,6 +107,7 @@ RUN bash dependencies.sh && \
         -DCMAKE_INSTALL_PREFIX=/opt/mooncake \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_INSTALL_RPATH=${CUDA_HOME}/lib64 \
         -DUSE_CUDA=ON && \
     make -j$(nproc) && \
     make install
