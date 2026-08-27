@@ -191,10 +191,11 @@ ENV LD_LIBRARY_PATH=/opt/nvidia/nvda_nixl/lib/aarch64-linux-gnu:/opt/nvidia/nvda
 ENV PYTHONPATH=""
 ENV PYTHONPATH=/opt/nvidia/nvda_nixl/lib/python3/dist-packages:${PYTHONPATH}
 
-# GB10 runtime defaults: register GPU memory as DRAM_SEG so ConnectX-7 verbs
-# treats it as host RDMA memory; cuda-copy is the safety fallback if anything
-# is registered as VRAM_SEG. Disable the libfabric CUDA address workaround.
-ENV UCX_TLS=cuda-copy,rc,sm,self,tcp
+# GB10 runtime defaults: cuda_copy stages GPU↔host for RDMA since GB10 has no
+# GPUDirect RDMA (cuMemGdrSupport=0). UCX transport names use underscores, not
+# hyphens — "cuda-copy" silently fails to match and UCX falls back to rc which
+# can't ibv_reg_mr GPU memory. Disable the libfabric CUDA address workaround.
+ENV UCX_TLS=cuda_copy,rc,sm,self,tcp
 ENV NIXL_DISABLE_CUDA_ADDR_WA=1
 
 WORKDIR /workspace
