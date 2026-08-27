@@ -12,7 +12,7 @@ clone_fork
 cd "$(src_dir)"
 
 # Pure Python — --universal produces py3-none-any (matches packages.json wheel).
-python3 setup.py bdist_wheel --universal
+python3 setup.py bdist_wheel
 
 built="$(ls -t dist/*.whl | head -1)"
 final="$("$ROOT/scripts/build/inject-local-version.sh" "$built" "$PKG_LOCAL_SEG")"
