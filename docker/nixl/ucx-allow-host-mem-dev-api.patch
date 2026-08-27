@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fulton Engineering Services <noreply@fultonengineeringservices.com>
+Date: Thu, 27 Aug 2026 12:00:00 +0000
+Subject: [PATCH] ucp_device: allow host memory in local mem list params check
+
+GB10 (Grace+Blackwell) has no GPUDirect RDMA — the NIC can only DMA
+from host memory, not GPU VRAM.  NIXL EP works around this by
+allocating the RDMA buffer with cudaMallocHost (page-locked host
+memory) and registering it as DRAM_SEG.
+
+The UCX GPU device API (ucp_device_local_mem_list_create) rejects
+host memory because ucp_device_local_mem_list_params_check requires
+memh->sys_dev to match the GPU's local_sys_dev.  Host memory has
+sys_dev = UCS_SYS_DEVICE_ID_UNKNOWN, which never matches.
+
+Relax the check to also accept UCS_MEMORY_TYPE_HOST.  The IB
+transport can still register host memory via ibv_reg_mr (that is
+standard host RDMA), and the GPU can access it over NVLink, so the
+transfer itself is correct — only the sys_dev guard was too strict.
+
+---
+ src/ucp/core/ucp_device.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/ucp/core/ucp_device.c b/src/ucp/core/ucp_device.c
+--- a/src/ucp/core/ucp_device.c
++++ b/src/ucp/core/ucp_device.c
+@@ -398,7 +398,8 @@
+         }
+ 
+-        if (memh->sys_dev != local_sys_dev) {
++        if ((memh->sys_dev != local_sys_dev) &&
++            (memh->mem_type != UCS_MEMORY_TYPE_HOST)) {
+             ucs_error("mismatched local sys_dev for element=%zu", i);
+             return UCS_ERR_UNSUPPORTED;
+         }
+-- 
+2.45.2
