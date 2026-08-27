@@ -19,8 +19,8 @@ ARG PYTHON_VERSION=3.12
 
 # Source refs — pinned for reproducibility. Override with --build-arg to test
 # other commits/tags.
-ARG NIXL_REPO=https://github.com/ai-dynamo/nixl.git
-ARG NIXL_REF=b0cbb237354d72b83500d5214d2b4484f9866fa3
+ARG NIXL_REPO=https://github.com/Fulton-Engineering-Services/nixl.git
+ARG NIXL_REF=aad981442460f4a28eccc3f179bf752cde8bf442
 ARG UCX_REPO=https://github.com/openucx/ucx.git
 ARG UCX_REF=7a5e80f389ea345c0480ca49a73d0cbf2b1d79d0
 ARG MOONCAKE_REPO=https://github.com/kvcache-ai/Mooncake.git
@@ -195,8 +195,9 @@ ENV PYTHONPATH=/opt/nvidia/nvda_nixl/lib/python3/dist-packages:${PYTHONPATH}
 # GPUDirect RDMA (cuMemGdrSupport=0). UCX transport names use underscores, not
 # hyphens — "cuda-copy" silently fails to match and UCX falls back to rc which
 # can't ibv_reg_mr GPU memory. Disable the libfabric CUDA address workaround.
-ENV UCX_TLS=cuda_copy,rc,sm,self,tcp
-ENV NIXL_DISABLE_CUDA_ADDR_WA=1
+ENV UCX_TLS=cuda_copy,rc,sm,self,tcp \
+    NIXL_DISABLE_CUDA_ADDR_WA=1 \
+    NIXL_EP_USE_HOST_RDMA_BUFFER=1
 
 WORKDIR /workspace
 
