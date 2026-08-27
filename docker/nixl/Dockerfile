@@ -187,7 +187,7 @@ COPY smoke-test.py /opt/nixl/smoke-test.py
 
 # Prefer nixl/UCX/Mooncake libraries; expose nixl python package.
 ENV PATH=/opt/ucx/bin:/opt/nvidia/nvda_nixl/bin:${PATH}
-ENV LD_LIBRARY_PATH=/opt/nvidia/nvda_nixl/lib:/opt/ucx/lib:/opt/mooncake/lib:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/opt/nvidia/nvda_nixl/lib/aarch64-linux-gnu:/opt/nvidia/nvda_nixl/lib:/opt/ucx/lib:/opt/mooncake/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=""
 ENV PYTHONPATH=/opt/nvidia/nvda_nixl/lib/python3/dist-packages:${PYTHONPATH}
 
