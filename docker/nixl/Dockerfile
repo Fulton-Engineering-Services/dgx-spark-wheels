@@ -143,7 +143,7 @@ RUN git init /src/nixl && \
     git checkout FETCH_HEAD
 WORKDIR /src/nixl
 RUN meson setup build \
-        -Denable_plugins=UCX,LIBFABRIC,POSIX,OBJ,MOONCAKE \
+        -Denable_plugins=UCX,LIBFABRIC,POSIX,MOONCAKE \
         -Dnixl_cuda_arch_list=121 \
         -Dbuild_tests=false \
         -Dbuild_examples=false \

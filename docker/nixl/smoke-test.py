@@ -10,7 +10,7 @@ libraries/plugins are present and the Python API can initialize.
 
 import nixl_cu13 as nixl
 
-EXPECTED_BACKENDS = {"UCX", "LIBFABRIC", "POSIX", "OBJ", "MOONCAKE"}
+EXPECTED_BACKENDS = {"UCX", "LIBFABRIC", "POSIX", "Mooncake"}
 
 
 def main() -> None:
