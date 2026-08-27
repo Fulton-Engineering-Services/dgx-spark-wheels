@@ -19,7 +19,7 @@ docker run --rm --gpus all \
   -v "$DIST_DIR:/dist:ro" \
   "$NIXL_RUNTIME_IMAGE" \
   bash -c "set -euo pipefail; \
-    pip install --force-reinstall --no-deps /dist/${PKG_WHEEL}; \
+    pip install --break-system-packages --force-reinstall --no-deps /dist/${PKG_WHEEL}; \
     python3 /opt/nixl/smoke-test.py"
 
 echo "==> verify-nixl OK: $PKG_WHEEL"
