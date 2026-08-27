@@ -32,6 +32,8 @@ on:
           - flashinfer-python
           - mamba-ssm
           - nixl
+          - uccl
+          - deep-ep
           - nunchaku
           - onnxruntime-gpu
           - sageattention

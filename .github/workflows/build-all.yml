@@ -95,6 +95,8 @@ jobs:
           - flashinfer-python
           - mamba-ssm
           - causal-conv1d
+          - uccl
+          - deep-ep
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: ${{ matrix.package }}

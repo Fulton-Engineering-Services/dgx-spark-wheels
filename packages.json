@@ -202,6 +202,35 @@
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/nixl-wheel-builder:24.04-cu13.3-sm121)",
       "notes": "GB10-specific nixl wheel built with UCX, libfabric, POSIX, OBJ and Mooncake plugins, CUDA sm_121, and the nixl_ep EP extension (build_nixl_ep=true, requires sm_90+). The pyproject.toml is patched at build time to nixl-cu13 / torch==2.13.*. The Python package is a consumer of torch but does not compile against the torch C++ API, hence the +cu<variant>.glibc239 local segment. Built in two stages: build-nixl-images.yml constructs the nixl-runtime and nixl-wheel-builder Docker images — the Dockerfile is self-contained, cloning nixl (ai-dynamo/nixl at b0cbb23), UCX (openucx/ucx at 7a5e80f), and Mooncake (kvcache-ai/Mooncake at v0.3.12.post1) directly via git at pinned refs — then build-wheel.yml extracts the wheel from the wheel-builder image, injects the local version segment, and verifies it inside the nixl-runtime image. The wheel includes both nixl_cu13 (core API) and nixl_ep_cu13 (EP extension for all2all expert-parallel communication). Integrated into build-all.yml as Phase 0 (images) + Phase 5 (wheel)."
+    },
+    {
+      "name": "uccl",
+      "version": "0.1.1+cu13.3torch2.13.glibc239",
+      "public_version": "0.1.1",
+      "wheel": "uccl-0.1.1+cu13.3torch2.13.glibc239-cp312-abi3-linux_aarch64.whl",
+      "arch_target": "sm_121",
+      "fork": "https://github.com/Fulton-Engineering-Services/uccl",
+      "fork_branch": "cuda13.3-aarch64-gb10",
+      "fork_ref": "a8c94e485da302b7cc963d2f74edb5b4e9115748",
+      "upstream": "https://github.com/uccl-project/uccl",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04)",
+      "notes": "EP-only build (BUILD_TYPE=ep). torch-linked (CUDAExtension links libtorch). Needs RDMA dev libs (libibverbs-dev, libnl-3-dev, libnl-route-3-dev, libnuma-dev) + nanobind at build time, installed via apt/pip in the build script. USE_DMABUF=1 enables DMA-BUF GPU memory registration (falls back to host-pinned on GB10 where nvidia_peermem is unavailable). Built with TORCH_CUDA_ARCH_LIST=12.1, no EFA, no Intel RDMA NIC. The uccl top-level setup.py packages the uccl/ Python module with the compiled ep.abi3.so as package_data. Depends on the from-source torch at build AND runtime. cu13.3-only (sm_121-specific)."
+    },
+    {
+      "name": "deep-ep",
+      "version": "0.1.0+cu13.3torch2.13.glibc239",
+      "public_version": "0.1.0",
+      "wheel": "deep_ep-0.1.0+cu13.3torch2.13.glibc239-py3-none-any.whl",
+      "arch_target": "n/a (pure Python, wraps uccl.ep)",
+      "fork": "https://github.com/Fulton-Engineering-Services/uccl",
+      "fork_branch": "cuda13.3-aarch64-gb10",
+      "fork_ref": "a8c94e485da302b7cc963d2f74edb5b4e9115748",
+      "fork_subdir": "ep/deep_ep_wrapper",
+      "upstream": "https://github.com/uccl-project/uccl",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04)",
+      "notes": "Pure-Python drop-in replacement for DeepSeek's deep_ep package. Imports uccl.ep (the compiled EP extension). Provides the same Buffer API as DeepEP for vLLM's --all2all-backend deepep_{low_latency,high_throughput}. check_nvlink_connections is a no-op on GB10 (device name does not contain 'PCIE'), so UCCL EP works on single-GPU-per-node GB10 where original DeepEP cannot (DeepEP requires NVLink for intranode ranks). Depends on uccl (runtime) + the from-source torch (runtime). cu13.3-only."
     }
   ]
 }
