@@ -101,7 +101,9 @@ RUN git clone --depth 1 --branch "${MOONCAKE_REF}" "${MOONCAKE_REPO}" /src/moonc
 WORKDIR /src/mooncake
 # dependencies.sh installs system packages and fetches/builds mooncake deps.
 # Flags may need adjustment if Ubuntu 24.04 / CUDA 13.3 incompatibilities surface.
-RUN bash dependencies.sh && \
+# Create libcuda.so.1 symlink from stubs so the linker resolves CUDA driver symbols.
+RUN ln -sf ${CUDA_HOME}/lib64/stubs/libcuda.so ${CUDA_HOME}/lib64/libcuda.so.1 && \
+    bash dependencies.sh && \
     mkdir build && cd build && \
     cmake .. \
         -DCMAKE_INSTALL_PREFIX=/opt/mooncake \
