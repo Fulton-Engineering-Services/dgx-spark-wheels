@@ -128,6 +128,8 @@ COPY --from=mooncake-builder /opt/mooncake /opt/mooncake
 ENV PATH=/opt/ucx/bin:${PATH}
 ENV LD_LIBRARY_PATH=/opt/ucx/lib:/opt/mooncake/lib:${LD_LIBRARY_PATH}
 ENV LIBRARY_PATH=/opt/ucx/lib:/opt/mooncake/lib:${LIBRARY_PATH}
+ENV CPLUS_INCLUDE_PATH=/opt/mooncake/include:${CPLUS_INCLUDE_PATH}
+ENV C_INCLUDE_PATH=/opt/mooncake/include:${C_INCLUDE_PATH}
 ENV PKG_CONFIG_PATH=""
 ENV PKG_CONFIG_PATH=/opt/ucx/lib/pkgconfig:${PKG_CONFIG_PATH}
 
