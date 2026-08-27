@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Build uccl (EP extension) wheel for GB10 (sm_121).
 #
-# UCCL EP uses proxy-based RDMA (D2H queue -> CPU proxy thread does ibv_reg_mr),
-# not hardware IBGDA, so it works on GB10 without nvidia_peermem. USE_DMABUF=1
-# enables the DMA-BUF code path; the host-alloc fallback is automatic at runtime
-# when GPU memory can't be registered for RDMA.
+# UCCL EP uses proxy-based RDMA (CPU proxy thread drives ibv_reg_mr),
+# not hardware IBGDA, so it works on GB10 without nvidia_peermem.
+# Leave USE_DMABUF unset (0): the runtime probes GPU memory registration and
+# automatically falls back to a pinned-host RDMA scratch buffer when GPU MR
+# registration fails (no DMA-BUF / no peermem).
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg uccl
@@ -21,7 +22,7 @@ pip install nanobind
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 export TORCH_CUDA_ARCH_LIST=12.1
-export USE_DMABUF=1
+export USE_DMABUF=0
 export USE_INTEL_RDMA_NIC=0
 
 # 1. Build EP extension (produces ep/build/lib.*/ep.abi3.so).

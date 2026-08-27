@@ -59,7 +59,7 @@ Every wheel in this index is:
 | `flashinfer-python` | 0.6.17+cu13.3torch2.13.glibc239 | `sm_121` (JIT at runtime) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/flashinfer) `cuda13-aarch64-gb10` |
 | `mamba-ssm` | 2.3.2.post1+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/mamba) `cuda13-aarch64-gb10` |
 | `causal-conv1d` | 1.6.2.post1+cu13.3torch2.13.glibc239 | `sm_121` | No wheel at all (source-only) | [fork](https://github.com/Fulton-Engineering-Services/causal-conv1d) `cuda13-aarch64-gb10` |
-| `uccl` | 0.1.1+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64 wheel | [fork](https://github.com/Fulton-Engineering-Services/uccl) `cuda13.3-aarch64-gb10` |
+| `uccl` | 0.1.2+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64 wheel | [fork](https://github.com/Fulton-Engineering-Services/uccl) `cuda13.3-aarch64-gb10` |
 | `deep-ep` | 0.1.0+cu13.3torch2.13.glibc239 | pure Python (wraps `uccl.ep`) | No | same fork, `ep/deep_ep_wrapper/` subdir |
 
 Every package above is published in **two CUDA variants** (`cu13.3` and
