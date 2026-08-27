@@ -44,6 +44,7 @@ RUN apt-get update -qq && \
         libfabric-dev \
         rdma-core \
         libnuma-dev \
+        libhwloc-dev \
         libasio-dev \
         libgflags-dev \
         libprotobuf-dev protobuf-compiler \
@@ -160,6 +161,7 @@ RUN apt-get update -qq && \
         libfabric-dev \
         rdma-core \
         libnuma-dev \
+        libhwloc-dev \
         libasio-dev \
         libgflags-dev \
         libprotobuf-dev protobuf-compiler \
