@@ -177,6 +177,9 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/* && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1
 
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+RUN pip install --no-cache-dir numpy
+
 COPY --from=ucx-builder /opt/ucx /opt/ucx
 COPY --from=mooncake-builder /opt/mooncake /opt/mooncake
 COPY --from=nixl-builder /opt/nvidia/nvda_nixl /opt/nvidia/nvda_nixl
