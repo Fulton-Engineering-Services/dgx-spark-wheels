@@ -41,6 +41,6 @@ fi
 cd "$ROOT"
 final="$("$ROOT/scripts/build/inject-local-version.sh" "$built" "$PKG_LOCAL_SEG")"
 
-# inject-local-version.sh writes the final wheel to ./dist/ relative to cwd.
-cp -f "$final" "$DIST_DIR/"
+# inject-local-version.sh writes the final wheel to ./dist/ relative to cwd,
+# which is $ROOT (= $DIST_DIR's parent), so the wheel is already in place.
 echo "==> built $PKG_NAME -> $DIST_DIR/$(basename "$final")"
