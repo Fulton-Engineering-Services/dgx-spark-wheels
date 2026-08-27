@@ -231,6 +231,7 @@ text = re.sub(
     '    "-Dnixl_cuda_arch_list=121",\n'
     '    "-Dbuild_tests=false",\n'
     '    "-Dbuild_examples=false",\n'
+    '    "-Dbuild_nixl_ep=true",\n'
     '    "-Ducx_path=/opt/ucx",\n'
     '    "-Dinstall_headers=false",\n'
     '    "-Dwheel_variant=cu13"\n'

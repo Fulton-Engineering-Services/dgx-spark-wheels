@@ -37,6 +37,13 @@ if [ ! -f "$built" ]; then
   exit 1
 fi
 
+# Verify the wheel contains the nixl_ep_cu13 EP extension (build_nixl_ep=true).
+if ! python3 -c "import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); ok=any('nixl_ep_cu13/' in n for n in z.namelist()); sys.exit(0 if ok else 1)" "$built"; then
+  echo "ERROR: wheel does not contain nixl_ep_cu13 — was build_nixl_ep enabled in the wheel-builder image?" >&2
+  exit 1
+fi
+echo "==> nixl_ep_cu13 extension present in wheel" >&2
+
 # Stamp the variant-aware local segment onto the wheel filename + METADATA.
 cd "$ROOT"
 final="$("$ROOT/scripts/build/inject-local-version.sh" "$built" "$PKG_LOCAL_SEG")"

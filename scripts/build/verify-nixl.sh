@@ -20,6 +20,7 @@ docker run --rm --gpus all \
   -v "$ROOT/docker/nixl/smoke-test.py:/opt/nixl/smoke-test.py:ro" \
   "$NIXL_RUNTIME_IMAGE" \
   bash -c "set -euo pipefail; \
+    python3 -c \"import zipfile,sys; z=zipfile.ZipFile('/dist/${PKG_WHEEL}'); ep=[n for n in z.namelist() if 'nixl_ep_cu13/' in n]; print(f'nixl_ep_cu13 files in wheel: {len(ep)}'); assert ep, 'nixl_ep_cu13 not found in wheel'; \
     pip install --break-system-packages --force-reinstall --no-deps /dist/${PKG_WHEEL}; \
     python3 /opt/nixl/smoke-test.py"
 
