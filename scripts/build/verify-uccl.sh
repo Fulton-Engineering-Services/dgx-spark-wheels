@@ -14,8 +14,9 @@ cap = torch.cuda.get_device_capability()
 assert cap == (12, 1), f"expected sm_121, got {cap}"
 
 import uccl.ep as ep
-assert ep.is_sm90_compiled(), "SM90 features not compiled (expected True for sm_121)"
-print(f"uccl.ep imported, is_sm90_compiled=True, cap={cap}")
+sm90 = ep.is_sm90_compiled()
+assert not sm90, "SM90 features should be disabled for GB10 (99KB smem limit)"
+print(f"uccl.ep imported, is_sm90_compiled=False (DISABLE_SM90_FEATURES=1), cap={cap}")
 
 # Verify the host-alloc RDMA buffer fallback works (GB10 has no peermem).
 # get_rdma_buffer returns (dlpack capsule, is_host_allocated_bool).
