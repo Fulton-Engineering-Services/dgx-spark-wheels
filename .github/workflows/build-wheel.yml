@@ -31,6 +31,7 @@ on:
           - flash-attn
           - flashinfer-python
           - mamba-ssm
+          - nixl
           - nunchaku
           - onnxruntime-gpu
           - sageattention
@@ -79,6 +80,7 @@ permissions:
 
 jobs:
   build:
+    if: inputs.package != 'nixl'
     runs-on: [self-hosted, gb10]
     timeout-minutes: 720
     container:
@@ -134,8 +136,49 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
+  # nixl is special: it doesn't build inside the build-env container. Instead
+  # it extracts a pre-built wheel from the nixl-wheel-builder image (built by
+  # build-nixl-images.yml) and verifies it inside the nixl-runtime image. Both
+  # require docker CLI on the bare runner, so this job has no container:.
+  build-nixl:
+    if: inputs.package == 'nixl'
+    runs-on: [self-hosted, gb10]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract and stamp nixl wheel
+        env:
+          CUDA_VARIANT: cu${{ inputs.cuda }}
+        run: scripts/build/nixl.sh
+
+      - name: Verify nixl in runtime image
+        env:
+          CUDA_VARIANT: cu${{ inputs.cuda }}
+        run: scripts/build/verify-nixl.sh
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: "dist/*.whl"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheel-${{ inputs.package }}-cu${{ inputs.cuda }}
+          path: dist/*.whl
+          retention-days: 1
+
   release:
-    needs: build
+    needs: [build, build-nixl]
+    if: ${{ !cancelled() && (needs.build.result == 'success' || needs.build-nixl.result == 'success') }}
     # Runs on the free arm runner (not the self-hosted GB10 box) because: (1)
     # gh CLI is pre-installed, (2) clean workspace avoids root-owned file
     # conflicts from the container build job, (3) no GPU needed for a release

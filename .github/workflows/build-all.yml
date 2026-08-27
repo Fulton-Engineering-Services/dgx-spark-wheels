@@ -19,6 +19,15 @@ permissions:
   attestations: write
 
 jobs:
+  # --- Phase 0: nixl images (needs nothing, independent of torch/triton) ---
+  # Builds the nixl-runtime and nixl-wheel-builder Docker images and pushes
+  # them to GHCR. The nixl wheel extraction (Phase 5) depends on this.
+  nixl-images:
+    uses: ./.github/workflows/build-nixl-images.yml
+    permissions:
+      contents: read
+      packages: write
+
   # --- Phase 1: Triton (needs nothing) ---
   triton:
     strategy:
@@ -92,6 +101,22 @@ jobs:
       cuda: ${{ matrix.cuda }}
       torch_wheel: wheel-torch-cu${{ matrix.cuda }}
       triton_wheel: wheel-triton-cu${{ matrix.cuda }}
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+  # --- Phase 5: nixl wheel (needs nixl images only, parallel with torch stack) ---
+  # nixl does not depend on torch or triton (it links CUDA but not the torch
+  # C++ API), so it runs in parallel with the torch-linked phases. Only the
+  # cu13.3 variant exists (sm_121-specific build). The nixl-images job must
+  # complete first so the wheel-builder image is available for extraction.
+  nixl:
+    needs: nixl-images
+    uses: ./.github/workflows/build-wheel.yml
+    with:
+      package: nixl
+      cuda: "13.3"
     permissions:
       contents: write
       id-token: write
