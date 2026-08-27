@@ -15,6 +15,9 @@ TAG="${NIXL_IMAGE_TAG:-24.04-cu13.3-sm121}"
 
 echo "==> verifying $PKG_WHEEL in ${NIXL_RUNTIME_IMAGE}" >&2
 
+# Pull the latest runtime image so we always use the most recently pushed one.
+docker pull "$NIXL_RUNTIME_IMAGE" >&2
+
 # Verify the wheel contains nixl_ep_cu13 before installing.
 docker run --rm \
   -v "$DIST_DIR:/dist:ro" \

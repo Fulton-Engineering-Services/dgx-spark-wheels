@@ -23,6 +23,9 @@ mkdir -p "$DIST_DIR"
 
 echo "==> extracting pre-built nixl wheel from ${NIXL_WHEEL_IMAGE}" >&2
 
+# Pull the latest image so we always get the most recently pushed wheel.
+docker pull "$NIXL_WHEEL_IMAGE" >&2
+
 tmp_extract="$(mktemp -d)"
 trap 'rm -rf "$tmp_extract"' EXIT
 
