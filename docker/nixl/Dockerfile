@@ -20,7 +20,7 @@ ARG PYTHON_VERSION=3.12
 # Source refs — pinned for reproducibility. Override with --build-arg to test
 # other commits/tags.
 ARG NIXL_REPO=https://github.com/Fulton-Engineering-Services/nixl.git
-ARG NIXL_REF=aad981442460f4a28eccc3f179bf752cde8bf442
+ARG NIXL_REF=ab72fd673906475a09e1e823e359b9df5a6f93c4
 ARG UCX_REPO=https://github.com/openucx/ucx.git
 ARG UCX_REF=7a5e80f389ea345c0480ca49a73d0cbf2b1d79d0
 ARG MOONCAKE_REPO=https://github.com/kvcache-ai/Mooncake.git
