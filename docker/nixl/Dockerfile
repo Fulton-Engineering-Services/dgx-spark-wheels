@@ -106,6 +106,7 @@ RUN bash dependencies.sh && \
     cmake .. \
         -DCMAKE_INSTALL_PREFIX=/opt/mooncake \
         -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
         -DUSE_CUDA=ON && \
     make -j$(nproc) && \
     make install
