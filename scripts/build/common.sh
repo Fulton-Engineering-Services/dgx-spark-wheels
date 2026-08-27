@@ -125,7 +125,11 @@ setup_venv() {
 clone_fork() {
   local dest="$SRC_DIR/$(basename "$PKG_FORK")"
   rm -rf "$dest"
-  git clone --depth 1 --branch "$PKG_FORK_BRANCH" "$PKG_FORK" "$dest"
+  local clone_url="$PKG_FORK"
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    clone_url="${PKG_FORK/#https:\/\/github.com\//https://x-access-token:${GITHUB_TOKEN}@github.com/}"
+  fi
+  git clone --depth 1 --branch "$PKG_FORK_BRANCH" "$clone_url" "$dest"
   # Verify the pinned ref matches (depth-1 clone HEAD should == fork_ref).
   local head; head="$(git -C "$dest" rev-parse HEAD)"
   if [ "$head" != "$PKG_FORK_REF" ]; then

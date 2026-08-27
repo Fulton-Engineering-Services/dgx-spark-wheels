@@ -110,6 +110,7 @@ jobs:
       - name: Build ${{ inputs.package }}
         env:
           CUDA_VARIANT: cu${{ inputs.cuda }}
+          GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
