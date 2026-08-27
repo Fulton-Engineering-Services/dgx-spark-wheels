@@ -8,7 +8,7 @@ loadable. Does not require a GPU or a peer connection; it only checks that the
 libraries/plugins are present and the Python API can initialize.
 """
 
-import nixl
+import nixl_cu13 as nixl
 
 EXPECTED_BACKENDS = {"UCX", "LIBFABRIC", "POSIX", "OBJ", "MOONCAKE"}
 

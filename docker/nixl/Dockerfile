@@ -186,7 +186,7 @@ COPY smoke-test.py /opt/nixl/smoke-test.py
 ENV PATH=/opt/ucx/bin:/opt/nvidia/nvda_nixl/bin:${PATH}
 ENV LD_LIBRARY_PATH=/opt/nvidia/nvda_nixl/lib:/opt/ucx/lib:/opt/mooncake/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=""
-ENV PYTHONPATH=/opt/nvidia/nvda_nixl/lib/python${PYTHON_VERSION}/site-packages:${PYTHONPATH}
+ENV PYTHONPATH=/opt/nvidia/nvda_nixl/lib/python3/dist-packages:${PYTHONPATH}
 
 # GB10 runtime defaults: register GPU memory as DRAM_SEG so ConnectX-7 verbs
 # treats it as host RDMA memory; cuda-copy is the safety fallback if anything
