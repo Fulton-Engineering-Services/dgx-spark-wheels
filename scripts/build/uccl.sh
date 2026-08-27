@@ -24,6 +24,11 @@ export PATH="$CUDA_HOME/bin:$PATH"
 export TORCH_CUDA_ARCH_LIST=12.1
 export USE_DMABUF=0
 export USE_INTEL_RDMA_NIC=0
+# GB10 (sm_121) has only 99 KB optin shared memory (like Ada sm_89, not
+# Hopper's 228 KB). The low-latency combine kernel's TMA buffer for 512
+# experts exceeds this limit. DISABLE_SM90_FEATURES switches to the non-TMA
+# code path (simple warp copy) which fits within the default shared memory.
+export DISABLE_SM90_FEATURES=1
 
 # 1. Build EP extension (produces ep/build/lib.*/ep.abi3.so).
 cd ep
