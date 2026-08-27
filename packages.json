@@ -211,7 +211,7 @@
       "arch_target": "sm_121",
       "fork": "https://github.com/Fulton-Engineering-Services/uccl",
       "fork_branch": "cuda13.3-aarch64-gb10",
-            "fork_ref": "f489783d7e8e30e95a9839060e0a41cd6523b3a2",
+            "fork_ref": "f489783d81bbee0c6b001837178ded229e2efd28",
       "upstream": "https://github.com/uccl-project/uccl",
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04)",
