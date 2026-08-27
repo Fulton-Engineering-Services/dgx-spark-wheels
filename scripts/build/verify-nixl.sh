@@ -17,6 +17,7 @@ echo "==> verifying $PKG_WHEEL in ${NIXL_RUNTIME_IMAGE}" >&2
 
 docker run --rm --gpus all \
   -v "$DIST_DIR:/dist:ro" \
+  -v "$ROOT/docker/nixl/smoke-test.py:/opt/nixl/smoke-test.py:ro" \
   "$NIXL_RUNTIME_IMAGE" \
   bash -c "set -euo pipefail; \
     pip install --break-system-packages --force-reinstall --no-deps /dist/${PKG_WHEEL}; \
