@@ -39,7 +39,7 @@ RUN apt-get update -qq && \
         autoconf automake libtool pkg-config \
         cmake ninja-build \
         git curl ca-certificates \
-        python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-pip \
+        python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev python3-pip \
         libibverbs-dev librdmacm-dev \
         libfabric-dev \
         rdma-core \
@@ -155,7 +155,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        python${PYTHON_VERSION} python${PYTHON_VERSION}-pip \
+        python${PYTHON_VERSION} python3-pip \
         libibverbs-dev librdmacm-dev \
         libfabric-dev \
         rdma-core \
