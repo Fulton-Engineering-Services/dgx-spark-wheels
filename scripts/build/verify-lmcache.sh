@@ -16,7 +16,10 @@ pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
 # MPCacheServer` (157 files, AST-based eager-import analysis). Skips deps
 # already in the venv (torch, triton) and guarded/optional ones (nvtx,
 # opentelemetry). See LMCache/requirements/common.txt for the full manifest.
-pip install --no-deps \
+# NOTE: lmcache itself is --no-deps to avoid clobbering the from-source
+# torch, but these deps are installed WITH deps so transitive packages
+# (multidict, yarl, llvmlite, httpcore, etc.) are resolved.
+pip install \
     PyYAML msgspec numpy prometheus-client psutil py-cpuinfo \
     requests aiohttp httpx cryptography cachetools sortedcontainers \
     numba pyzmq
