@@ -240,7 +240,7 @@
       "arch_target": "n/a (pure Python; uses torch + ctypes for cuFile/GDS at runtime)",
       "fork": "https://github.com/Fulton-Engineering-Services/flextensor",
       "fork_branch": "feat/nvme-disk-offload",
-      "fork_ref": "ed423c99f733a3e3b7d8c93f1e5c15a3c7c2ce12",
+      "fork_ref": "1e6debed2ed416e3a5c831cb1c4e1047c0662bd2",
       "upstream": "https://github.com/ai-dynamo/flextensor",
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
