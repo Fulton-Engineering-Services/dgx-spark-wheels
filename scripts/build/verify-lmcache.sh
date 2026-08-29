@@ -44,10 +44,16 @@ value_cache_ref = value_cache.clone()
 # Slot mapping: map each token to a slot in the paged cache
 slot_mapping = torch.tensor([0, 1, 2, 3], device=device)
 
-# Memory object: [2 (K+V), num_layers, num_tokens, num_heads * head_size] on CPU
+# Memory object: [2 (K+V), num_layers, num_tokens, num_heads * head_size] on CPU.
+# MUST be pinned — get_kernel_ptr() calls cudaHostGetDevicePointer() on CPU
+# tensors, which requires registered/mapped memory. On GB10 unified memory
+# non-pinned pointers may "succeed" but produce cache-coherency-corrupted
+# roundtrips (GPU writes appear to land but subsequent GPU reads return
+# stale data). This matches LMCache's own test convention (test_torch_ops.py
+# line 394: mem_obj_tensor = mem_obj_tensor.pin_memory()).
 mem_obj = torch.zeros(
     2, num_layers, num_tokens, num_heads * head_size, dtype=dtype
-)
+).pin_memory()
 
 # Extract: paged GPU KV -> CPU memory object (launches a real CUDA kernel)
 cuda_ops.load_and_reshape_flash(
@@ -68,12 +74,20 @@ torch.cuda.synchronize()
 
 # Verify roundtrip: the written-back slots should match the original
 for slot in slot_mapping.tolist():
-    assert torch.allclose(
-        key_cache_ref[slot], key_cache_new[slot], atol=1e-2
-    ), f"key_cache slot {slot} mismatch after roundtrip"
-    assert torch.allclose(
-        value_cache_ref[slot], value_cache_new[slot], atol=1e-2
-    ), f"value_cache slot {slot} mismatch after roundtrip"
+    if not torch.allclose(key_cache_ref[slot], key_cache_new[slot], atol=1e-2):
+        max_diff = (key_cache_ref[slot].float() - key_cache_new[slot].float()).abs().max().item()
+        raise AssertionError(
+            f"key_cache slot {slot} mismatch after roundtrip "
+            f"(max_diff={max_diff:.4f}, "
+            f"ref_sum={key_cache_ref[slot].abs().sum().item():.1f}, "
+            f"new_sum={key_cache_new[slot].abs().sum().item():.1f})"
+        )
+    if not torch.allclose(value_cache_ref[slot], value_cache_new[slot], atol=1e-2):
+        max_diff = (value_cache_ref[slot].float() - value_cache_new[slot].float()).abs().max().item()
+        raise AssertionError(
+            f"value_cache slot {slot} mismatch after roundtrip "
+            f"(max_diff={max_diff:.4f})"
+        )
 
 # Verify the MP server CLI entry point is importable (out-of-process daemon)
 from lmcache.v1.multiprocess.server import MPCacheServer
