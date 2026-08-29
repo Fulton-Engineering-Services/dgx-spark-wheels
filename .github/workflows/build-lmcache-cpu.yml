@@ -70,23 +70,14 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install "$(ls dist/*.whl)" --no-deps
           python3 -c "import lmcache; assert lmcache.torch_device_type == 'cpu'; print(f'lmcache {lmcache.__version__} CPU OK')"
-
-      - name: Verify common C++ extensions
-        shell: python3
-        run: |
-          import lmcache.lmcache_native
-          import lmcache.lmcache_redis
-          import lmcache.lmcache_fs
-          print('common C++ extensions OK')
-
-      - name: Verify no CUDA ops
-        shell: python3
-        run: |
-          try:
-            import lmcache.cuda_ops
-            exit(1)
-          except (ModuleNotFoundError, ImportError):
-            print('cuda_ops absent (correct)')
+          python3 -c "import lmcache.lmcache_native; import lmcache.lmcache_redis; import lmcache.lmcache_fs; print('common C++ extensions OK')"
+          python3 -c "
+try:
+    import lmcache.cuda_ops
+    exit(1)
+except (ModuleNotFoundError, ImportError):
+    print('cuda_ops absent (correct)')
+"
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
