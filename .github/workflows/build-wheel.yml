@@ -30,6 +30,7 @@ on:
           - causal-conv1d
           - flash-attn
           - flashinfer-python
+          - lmcache
           - mamba-ssm
           - nixl
           - uccl

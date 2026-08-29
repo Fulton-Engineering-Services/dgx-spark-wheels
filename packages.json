@@ -233,6 +233,21 @@
       "notes": "Pure-Python drop-in replacement for DeepSeek's deep_ep package. Imports uccl.ep (the compiled EP extension). Provides the same Buffer API as DeepEP for vLLM's --all2all-backend deepep_{low_latency,high_throughput}. check_nvlink_connections is a no-op on GB10 (device name does not contain 'PCIE'), so UCCL EP works on single-GPU-per-node GB10 where original DeepEP cannot (DeepEP requires NVLink for intranode ranks). Depends on uccl (runtime) + the from-source torch (runtime). cu13.3-only."
     },
     {
+      "name": "lmcache",
+      "version": "0.5.5rc1+cu13.3torch2.13.glibc239",
+      "public_version": "0.5.5rc1",
+      "wheel": "lmcache-0.5.5rc1+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121",
+      "fork": "https://github.com/Fulton-Engineering-Services/lmcache",
+      "fork_branch": "cuda13.3-aarch64-gb10",
+      "fork_ref": "ca2f474412e3b881c2f39e62561414c9676653dc",
+      "upstream": "https://github.com/LMCache/LMCache",
+      "upstream_commit": "ca2f474412e3b881c2f39e62561414c9676653dc",
+      "upstream_license": "Apache-2.0",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
+      "notes": "KV cache management engine for LLM serving (vLLM, SGLang, TRT-LLM). Built with CUDA extensions (lmcache.cuda_ops: mem/blend/AC-encode/AC-decode/pos kernels) + common C++ extensions (lmcache_native, lmcache_redis, lmcache_fs) via setup_extensions BuildPolicy (auto-detects nvcc; CUDA profile). No source patches needed -- the fork is a pin only. SETUPTOOLS_SCM_PRETEND_VERSION pins the version (setuptools_scm derives from git tags; local_scheme=no-local-version). LMCACHE_CUDA_MAJOR=13 (default, selects cuda13_core.txt runtime deps). TORCH_CUDA_ARCH_LIST=12.1. The Rust raw_block component (rust/raw_block/, io-uring + pyo3) is NOT built -- it is an optional L2 storage backend imported lazily inside a function (from lmcache_rust_raw_block_io import RawBlockDevice), not part of the standard pip build. The MP (multiprocess) server mode (lmcache server CLI) is the out-of-process cache daemon for Dynamo vLLM integration; workers attach via LMCacheMPConnector over ZMQ + CUDA IPC. torch-linked package -- needs the from-source torch at build AND runtime. Pinned 4 commits past v0.5.5rc1 on the dev branch (default branch). Fork must be created before first build: fork LMCache/LMCache to Fulton-Engineering-Services/lmcache, create branch cuda13.3-aarch64-gb10 at ca2f4744."
+    },
+    {
       "name": "flextensor",
       "version": "0.4.0+cu13.3torch2.13.glibc239",
       "public_version": "0.4.0",
