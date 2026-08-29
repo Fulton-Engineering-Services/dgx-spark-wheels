@@ -11,7 +11,15 @@ set -euo pipefail
 load_pkg lmcache
 . "$VENV/bin/activate"
 pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
-pip install pyzmq --no-deps
+# Install the runtime deps that the MP server import chain requires.
+# Statically traced from `from lmcache.v1.multiprocess.server import
+# MPCacheServer` (157 files, AST-based eager-import analysis). Skips deps
+# already in the venv (torch, triton) and guarded/optional ones (nvtx,
+# opentelemetry). See LMCache/requirements/common.txt for the full manifest.
+pip install --no-deps \
+    PyYAML msgspec numpy prometheus-client psutil py-cpuinfo \
+    requests aiohttp httpx cryptography cachetools sortedcontainers \
+    numba pyzmq
 
 python3 - <<'PY'
 import torch
