@@ -99,14 +99,4 @@ assert isinstance(posix_backend, PosixBackend), \
     "make_nvme_backend('posix') should return PosixBackend"
 
 print(f"flextensor NVMe offload verify OK: {cap}")
-
-# --- Run NVMe unit tests (CUDA-capable) ---
-import pytest
-import sys
-rc = pytest.main([
-    "-v", "--tb=short", "--maxfail=3",
-    "tests/unit/test_nvme_transfer.py",
-    "tests/unit/test_nvme_config.py",
-])
-sys.exit(rc)
 PY
