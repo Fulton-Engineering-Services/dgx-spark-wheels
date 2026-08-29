@@ -26,15 +26,19 @@ pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
 # All other deps installed with full pip resolution (no --no-deps).
 COMMON_REQ="$SRC_DIR/lmcache/requirements/common.txt"
 if [ -f "$COMMON_REQ" ]; then
-    DEPS=$(grep -v '^\s*#' "$COMMON_REQ" | grep -v '^\s*$' \
+    TMP_REQ=$(mktemp)
+    grep -v '^\s*#' "$COMMON_REQ" | grep -v '^\s*$' \
         | grep -v '^torch$' \
         | grep -v '^cufile-python$' \
         | grep -v '^setuptools' \
         | grep -v '^setuptools_scm' \
         | grep -v '^pytest$' \
-        | tr '\n' ' ')
+        | grep -v '^\s*$' \
+        > "$TMP_REQ"
     echo "==> installing LMCache deps from $COMMON_REQ" >&2
-    pip install $DEPS
+    cat "$TMP_REQ" >&2
+    pip install -r "$TMP_REQ"
+    rm -f "$TMP_REQ"
 else
     echo "WARNING: $COMMON_REQ not found -- is the build step missing?" >&2
     # Fallback: run discover_import_deps.py locally to generate this list,
