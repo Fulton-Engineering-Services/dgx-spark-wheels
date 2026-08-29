@@ -11,6 +11,7 @@ set -euo pipefail
 load_pkg lmcache
 . "$VENV/bin/activate"
 pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
+pip install pyzmq --no-deps
 
 python3 - <<'PY'
 import torch
