@@ -34,6 +34,7 @@ on:
           - nixl
           - uccl
           - deep-ep
+          - flextensor
           - nunchaku
           - onnxruntime-gpu
           - sageattention

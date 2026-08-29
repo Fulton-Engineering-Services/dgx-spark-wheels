@@ -97,6 +97,7 @@ jobs:
           - causal-conv1d
           - uccl
           - deep-ep
+          - flextensor
     uses: ./.github/workflows/build-wheel.yml
     with:
       package: ${{ matrix.package }}
