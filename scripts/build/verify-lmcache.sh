@@ -11,18 +11,43 @@ set -euo pipefail
 load_pkg lmcache
 . "$VENV/bin/activate"
 pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
-# Install the runtime deps that the MP server import chain requires.
-# Statically traced from `from lmcache.v1.multiprocess.server import
-# MPCacheServer` (157 files, AST-based eager-import analysis). Skips deps
-# already in the venv (torch, triton) and guarded/optional ones (nvtx,
-# opentelemetry). See LMCache/requirements/common.txt for the full manifest.
-# NOTE: lmcache itself is --no-deps to avoid clobbering the from-source
-# torch, but these deps are installed WITH deps so transitive packages
-# (multidict, yarl, llvmlite, httpcore, etc.) are resolved.
-pip install \
-    PyYAML msgspec numpy prometheus-client psutil py-cpuinfo \
-    requests aiohttp httpx cryptography cachetools sortedcontainers \
-    numba pyzmq
+
+# Install LMCache's runtime deps from its own requirements/common.txt
+# (the build step cloned the source into $SRC_DIR). This is the single
+# canonical source of truth -- no manual enumeration that risks missing
+# transitive deps every time upstream adds a new import.
+#
+# Skips:
+#   torch          -- already in venv from setup_venv (from-source, cu13.3)
+#   cufile-python  -- cuFile unsupported on GB10 (CU_FILE_IO_NOT_SUPPORTED)
+#   setuptools     -- already in venv (build dep, not runtime)
+#   setuptools_scm -- build dep only
+#   pytest         -- test dep only
+# All other deps installed with full pip resolution (no --no-deps).
+COMMON_REQ="$SRC_DIR/lmcache/requirements/common.txt"
+if [ -f "$COMMON_REQ" ]; then
+    DEPS=$(grep -v '^\s*#' "$COMMON_REQ" | grep -v '^\s*$' \
+        | grep -v '^torch$' \
+        | grep -v '^cufile-python$' \
+        | grep -v '^setuptools' \
+        | grep -v '^setuptools_scm' \
+        | grep -v '^pytest$' \
+        | tr '\n' ' ')
+    echo "==> installing LMCache deps from $COMMON_REQ" >&2
+    pip install $DEPS
+else
+    echo "WARNING: $COMMON_REQ not found -- is the build step missing?" >&2
+    # Fallback: run discover_import_deps.py locally to generate this list,
+    # then paste it here.
+    pip install \
+        PyYAML msgspec numpy prometheus-client psutil py-cpuinfo \
+        requests aiohttp httpx cryptography cachetools sortedcontainers \
+        numba pyzmq opentelemetry-api opentelemetry-sdk \
+        opentelemetry-exporter-otlp opentelemetry-exporter-prometheus \
+        fastapi uvicorn httptools blake3 awscrt huggingface_hub \
+        safetensors \
+        google-api-core google-cloud-bigtable
+fi
 
 python3 - <<'PY'
 import torch
@@ -57,7 +82,7 @@ value_cache_ref = value_cache.clone()
 slot_mapping = torch.tensor([0, 1, 2, 3], device=device)
 
 # Memory object: [2 (K+V), num_layers, num_tokens, num_heads * head_size] on CPU.
-# MUST be pinned — get_kernel_ptr() calls cudaHostGetDevicePointer() on CPU
+# MUST be pinned -- get_kernel_ptr() calls cudaHostGetDevicePointer() on CPU
 # tensors, which requires registered/mapped memory. On GB10 unified memory
 # non-pinned pointers may "succeed" but produce cache-coherency-corrupted
 # roundtrips (GPU writes appear to land but subsequent GPU reads return
