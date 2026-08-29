@@ -72,21 +72,40 @@ cuda_ops.reshape_and_cache_back_flash(
 )
 torch.cuda.synchronize()
 
-# Verify roundtrip: the written-back slots should match the original
+# Verify roundtrip: the written-back slots should match the original.
+# slot_mapping maps tokens to linear slot indices in the paged cache; each
+# slot = block_idx * block_size + block_offset. Index [block_idx, block_offset]
+# to compare only the specific positions that were written, not the entire
+# block (other offsets remain zero). Matches LMCache's own test convention
+# (test_torch_ops.py lines 425-430).
 for slot in slot_mapping.tolist():
-    if not torch.allclose(key_cache_ref[slot], key_cache_new[slot], atol=1e-2):
-        max_diff = (key_cache_ref[slot].float() - key_cache_new[slot].float()).abs().max().item()
+    block_idx = slot // block_size
+    block_offset = slot % block_size
+    if not torch.allclose(
+        key_cache_ref[block_idx, block_offset],
+        key_cache_new[block_idx, block_offset],
+        atol=1e-2,
+    ):
+        max_diff = (
+            key_cache_ref[block_idx, block_offset].float()
+            - key_cache_new[block_idx, block_offset].float()
+        ).abs().max().item()
         raise AssertionError(
-            f"key_cache slot {slot} mismatch after roundtrip "
-            f"(max_diff={max_diff:.4f}, "
-            f"ref_sum={key_cache_ref[slot].abs().sum().item():.1f}, "
-            f"new_sum={key_cache_new[slot].abs().sum().item():.1f})"
+            f"key_cache slot {slot} (block={block_idx}, off={block_offset}) "
+            f"mismatch after roundtrip (max_diff={max_diff:.4f})"
         )
-    if not torch.allclose(value_cache_ref[slot], value_cache_new[slot], atol=1e-2):
-        max_diff = (value_cache_ref[slot].float() - value_cache_new[slot].float()).abs().max().item()
+    if not torch.allclose(
+        value_cache_ref[block_idx, block_offset],
+        value_cache_new[block_idx, block_offset],
+        atol=1e-2,
+    ):
+        max_diff = (
+            value_cache_ref[block_idx, block_offset].float()
+            - value_cache_new[block_idx, block_offset].float()
+        ).abs().max().item()
         raise AssertionError(
-            f"value_cache slot {slot} mismatch after roundtrip "
-            f"(max_diff={max_diff:.4f})"
+            f"value_cache slot {slot} (block={block_idx}, off={block_offset}) "
+            f"mismatch after roundtrip (max_diff={max_diff:.4f})"
         )
 
 # Verify the MP server CLI entry point is importable (out-of-process daemon)
