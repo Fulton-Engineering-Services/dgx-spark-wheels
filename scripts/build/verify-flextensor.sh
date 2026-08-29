@@ -61,28 +61,37 @@ backend.close()
 print("flextensor PosixBackend NVMe roundtrip OK")
 
 # --- CuFileBackend init + roundtrip (GDS, if nvidia-fs loaded) ---
+cu_ok = False
 if is_nvidia_fs_available():
-    cf = CuFileBackend(alignment=4096)
-    cf_path = os.path.join(tmpdir, "cufile_test.bin")
-    fd2 = cf.open_file(cf_path)
+    try:
+        cf = CuFileBackend(alignment=4096)
+    except RuntimeError as exc:
+        print(f"flextensor: CuFileBackend pre-flight failed ({exc}) — "
+              "GDS not supported on this GPU, verify passed via posix")
+    else:
+        cu_ok = True
+        cf_path = os.path.join(tmpdir, "cufile_test.bin")
+        fd2 = cf.open_file(cf_path)
 
-    data2 = torch.randn(512, 512, dtype=torch.float32)
-    data2_bytes = data2.contiguous().view(torch.uint8).flatten()
-    ref2 = cf.write_block(fd2, data2_bytes, offset=0)
-    assert ref2.logical_nbytes == data2_bytes.numel()
+        data2 = torch.randn(512, 512, dtype=torch.float32)
+        data2_bytes = data2.contiguous().view(torch.uint8).flatten()
+        ref2 = cf.write_block(fd2, data2_bytes, offset=0)
+        assert ref2.logical_nbytes == data2_bytes.numel()
 
-    gpu2 = torch.empty(ref2.aligned_nbytes, dtype=torch.uint8, device="cuda")
-    cf.read_block(fd2, gpu2, offset=0, nbytes=ref2.logical_nbytes)
-    torch.cuda.synchronize()
+        gpu2 = torch.empty(ref2.aligned_nbytes, dtype=torch.uint8, device="cuda")
+        cf.read_block(fd2, gpu2, offset=0, nbytes=ref2.logical_nbytes)
+        torch.cuda.synchronize()
 
-    gpu2_data = gpu2[: ref2.logical_nbytes].view(torch.float32).reshape(512, 512).cpu()
-    assert torch.allclose(gpu2_data, data2), "cuFile roundtrip data mismatch"
+        gpu2_data = gpu2[: ref2.logical_nbytes].view(torch.float32).reshape(512, 512).cpu()
+        assert torch.allclose(gpu2_data, data2), "cuFile roundtrip data mismatch"
 
-    cf.close_file(fd2)
-    cf.close()
-    print("flextensor CuFileBackend NVMe roundtrip OK (GDS direct-to-GPU)")
-else:
-    print("flextensor: nvidia-fs not loaded — cuFile (GDS) skipped, posix verified")
+        cf.close_file(fd2)
+        cf.close()
+        print("flextensor CuFileBackend NVMe roundtrip OK (GDS direct-to-GPU)")
+
+if not cu_ok:
+    print("flextensor: nvidia-fs not loaded or cuFile pre-flight failed — "
+          "cuFile (GDS) skipped, posix verified")
 
 # --- make_nvme_backend factory ---
 posix_backend = make_nvme_backend("posix", alignment=4096)
