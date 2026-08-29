@@ -61,8 +61,7 @@ jobs:
           built="$(ls -t src/dist/*.whl | head -1)"
           echo "Built: $built"
           scripts/build/inject-local-version.sh "$built" "$LOCAL_SEG"
-          mkdir -p dist
-          cp dist/*.whl dist/
+          ls -la dist/*.whl
 
       - name: Verify CPU wheel
         shell: bash
