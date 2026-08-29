@@ -71,13 +71,7 @@ jobs:
           pip install "$(ls dist/*.whl)" --no-deps
           python3 -c "import lmcache; assert lmcache.torch_device_type == 'cpu'; print(f'lmcache {lmcache.__version__} CPU OK')"
           python3 -c "import lmcache.lmcache_native; import lmcache.lmcache_redis; import lmcache.lmcache_fs; print('common C++ extensions OK')"
-          python3 -c "
-try:
-    import lmcache.cuda_ops
-    exit(1)
-except (ModuleNotFoundError, ImportError):
-    print('cuda_ops absent (correct)')
-"
+          python3 -c "import lmcache; has_cuda=__import__('importlib').util.find_spec('lmcache.cuda_ops'); assert has_cuda is None, 'cuda_ops should not exist in CPU wheel'; print('cuda_ops absent (correct)')"
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
