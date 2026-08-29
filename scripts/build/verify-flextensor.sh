@@ -8,6 +8,10 @@ set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg flextensor
 . "$VENV/bin/activate"
+# Install flextensor runtime deps not already in the venv (setup_venv has
+# torch, triton, numpy, psutil). --no-deps on the wheel install avoids pip
+# pulling a PyPI torch that would clobber our from-source build.
+pip install pydantic beartype pyyaml scipy proxytypes3 pytest
 pip install "$DIST_DIR/$PKG_WHEEL" --no-deps
 
 # Try to load nvidia-fs for cuFile (GDS); fall back to posix if unavailable.
