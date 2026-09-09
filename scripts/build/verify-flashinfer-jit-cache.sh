@@ -22,8 +22,11 @@ aot = pathlib.Path(flashinfer_jit_cache.get_jit_cache_dir())
 assert jit_env.FLASHINFER_AOT_DIR == aot
 sos = list(aot.rglob("*.so"))
 assert len(sos) > 100, f"only {len(sos)} AOT modules"
-mla = [p for p in sos if p.parent.name.startswith("batch_mla_fa2") and "bf16" in p.parent.name]
-assert mla, "no fa2 bf16 batch-MLA AOT module"
+# AOT MLA modules are named batch_mla_attention_dtype_q_<dtype>_... (the
+# backend is not in the name; fp8 KV is not in the default AOT MLA set).
+mla = [p for p in sos if p.parent.name.startswith("batch_mla_attention_dtype_q_")
+       and "bf16" in p.parent.name]
+assert mla, "no bf16 batch-MLA AOT module (names: batch_mla_attention_dtype_q_*)"
 elfs = subprocess.run(["cuobjdump", "--list-elf", str(mla[0])],
                       capture_output=True, text=True).stdout
 assert "sm_121a" in elfs, f"no sm_121a ELF in {mla[0]}:\n{elfs}"
