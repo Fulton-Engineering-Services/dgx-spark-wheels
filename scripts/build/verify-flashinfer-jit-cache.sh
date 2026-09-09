@@ -49,7 +49,7 @@ qo_indptr = torch.tensor([0, 4], dtype=torch.int32, device="cuda")
 kv_indptr = torch.tensor([0, 4], dtype=torch.int32, device="cuda")
 wrapper.plan(
     qo_indptr, kv_indptr, num_qo_heads=8, num_kv_heads=8, head_dim_qk=128,
-    causal=True,
+    causal=True, q_data_type=torch.bfloat16,
 )
 out = wrapper.run(q, k, v)
 torch.cuda.synchronize()
