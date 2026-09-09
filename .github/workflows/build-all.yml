@@ -93,6 +93,7 @@ jobs:
           - nunchaku
           - onnxruntime-gpu
           - flashinfer-python
+          - flashinfer-jit-cache
           - mamba-ssm
           - causal-conv1d
           - uccl

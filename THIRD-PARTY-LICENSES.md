@@ -18,6 +18,7 @@ repository's own license.
 | `nunchaku` | [nunchaku-ai/nunchaku](https://github.com/nunchaku-ai/nunchaku) | Apache-2.0 | [upstream LICENSE](https://github.com/nunchaku-ai/nunchaku/blob/main/LICENSE) |
 | `onnxruntime-gpu` | [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) | MIT | [upstream LICENSE](https://github.com/microsoft/onnxruntime/blob/main/LICENSE) |
 | `flashinfer-python` | [flashinfer-ai/flashinfer](https://github.com/flashinfer-ai/flashinfer) | Apache-2.0 | [upstream LICENSE](https://github.com/flashinfer-ai/flashinfer/blob/main/LICENSE) |
+| `flashinfer-jit-cache` | [flashinfer-ai/flashinfer](https://github.com/flashinfer-ai/flashinfer) | Apache-2.0 | [upstream LICENSE](https://github.com/flashinfer-ai/flashinfer/blob/main/LICENSE) |
 | `mamba-ssm` | [state-spaces/mamba](https://github.com/state-spaces/mamba) | Apache-2.0 | [upstream LICENSE](https://github.com/state-spaces/mamba/blob/main/LICENSE) |
 | `causal-conv1d` | [Dao-AILab/causal-conv1d](https://github.com/Dao-AILab/causal-conv1d) | BSD-3-Clause | [upstream LICENSE](https://github.com/Dao-AILab/causal-conv1d/blob/main/LICENSE) |
 | `flextensor` | [ai-dynamo/flextensor](https://github.com/ai-dynamo/flextensor) | Apache-2.0 | [upstream LICENSE](https://github.com/ai-dynamo/flextensor/blob/main/LICENSE) |

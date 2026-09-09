@@ -57,6 +57,7 @@ Every wheel in this index is:
 | `nunchaku` | 1.2.1+cu13.3torch2.13.glibc239 | `sm_121a` (auto-detected) | No | [fork](https://github.com/Fulton-Engineering-Services/nunchaku) `cuda13-aarch64-gb10` |
 | `onnxruntime-gpu` | 1.22.0+cu13.3.glibc239 | generic (no arch pin) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/onnxruntime) `cuda13-aarch64-gb10` |
 | `flashinfer-python` | 0.6.17+cu13.3torch2.13.glibc239 | `sm_121` (JIT at runtime) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/flashinfer) `cuda13-aarch64-gb10` |
+| `flashinfer-jit-cache` | 0.6.18+gb10aot.cu13.3torch2.13.glibc239 | `sm_121a` (AOT) | Upstream release wheel has no sm_121a | [fork](https://github.com/Fulton-Engineering-Services/flashinfer) `v0.6.18-gb10` |
 | `mamba-ssm` | 2.3.2.post1+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/mamba) `cuda13-aarch64-gb10` |
 | `causal-conv1d` | 1.6.2.post1+cu13.3torch2.13.glibc239 | `sm_121` | No wheel at all (source-only) | [fork](https://github.com/Fulton-Engineering-Services/causal-conv1d) `cuda13-aarch64-gb10` |
 | `uccl` | 0.1.2+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64 wheel | [fork](https://github.com/Fulton-Engineering-Services/uccl) `cuda13.3-aarch64-gb10` |
