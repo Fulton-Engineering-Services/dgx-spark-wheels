@@ -35,13 +35,24 @@ PY
 
 FLASHINFER_DISABLE_JIT=1 python3 - <<'PY'
 import torch
-from flashinfer import single_prefill_with_kv_cache
+from flashinfer import BatchPrefillWithRaggedKVCacheWrapper
 assert torch.cuda.get_device_capability() == (12, 1)
+# Batch ragged prefill is in the default AOT set (gen_attention) — this is the
+# API family vLLM's FlashInfer attention backend drives. A MissingJITCacheError
+# here means the AOT cache is not actually covering sm_121a.
+workspace = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda")
+wrapper = BatchPrefillWithRaggedKVCacheWrapper(workspace, kv_layout="NHD")
 q = torch.randn(4, 8, 128, dtype=torch.bfloat16, device="cuda")
 k = torch.randn(4, 8, 128, dtype=torch.bfloat16, device="cuda")
 v = torch.randn(4, 8, 128, dtype=torch.bfloat16, device="cuda")
-out = single_prefill_with_kv_cache(q, k, v, kv_layout="NHD", pos_encoding_mode="NONE")
+qo_indptr = torch.tensor([0, 4], dtype=torch.int32, device="cuda")
+kv_indptr = torch.tensor([0, 4], dtype=torch.int32, device="cuda")
+wrapper.plan(
+    qo_indptr, kv_indptr, num_qo_heads=8, num_kv_heads=8, head_dim_qk=128,
+    causal=True,
+)
+out = wrapper.run(q, k, v)
 torch.cuda.synchronize()
 assert out.shape == (4, 8, 128)
-print("AOT prefill launch OK with JIT disabled:", tuple(out.shape))
+print("AOT batch-ragged-prefill launch OK with JIT disabled:", tuple(out.shape))
 PY
