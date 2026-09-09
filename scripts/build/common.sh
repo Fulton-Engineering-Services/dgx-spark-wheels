@@ -82,6 +82,11 @@ setup_venv() {
   python3.12 -m venv "$VENV"
   # shellcheck disable=SC1091
   . "$VENV/bin/activate"
+  # Route pip's HTTP cache under $BUILD_DIR so the workflow's actions/cache on
+  # /tmp/wheel-build/pip-cache persists wheel downloads across CI runs (the
+  # default ~/.cache/pip is ephemeral inside the job container).
+  export PIP_CACHE_DIR="$BUILD_DIR/pip-cache"
+  mkdir -p "$PIP_CACHE_DIR"
   pip install --upgrade pip setuptools wheel
   # torch: prefer a locally-built wheel (TORCH_WHEEL artifact), then our own
   # published index wheel (variant-matching), then PyPI cu130 as a last resort

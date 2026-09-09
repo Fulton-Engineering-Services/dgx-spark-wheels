@@ -47,6 +47,21 @@ export FLASHINFER_LOCAL_VERSION="$PKG_LOCAL_SEG"
 export MAX_JOBS="${MAX_JOBS:-8}"
 export FLASHINFER_NVCC_THREADS="${FLASHINFER_NVCC_THREADS:-2}"
 
+# ccache for the nvcc AOT compile: the default CCACHE_DIR (~/.ccache) is
+# ephemeral in the job container, so a fork_ref-unchanged rebuild (e.g.
+# iterating on the verify script or AOT config) would recompile all ~561
+# modules. FlashInfer's ninja generator (flashinfer/jit/cpp_ext.py) wires a
+# compiler launcher via FLASHINFER_NVCC_LAUNCHER — point it at ccache and put
+# CCACHE_DIR under $BUILD_DIR (persisted by actions/cache) so object results
+# survive. No-op when ccache is absent from the build-env image.
+export CCACHE_DIR="$BUILD_DIR/ccache"
+mkdir -p "$CCACHE_DIR"
+if command -v ccache >/dev/null 2>&1; then
+  export FLASHINFER_NVCC_LAUNCHER="${FLASHINFER_NVCC_LAUNCHER:-ccache}"
+  export FLASHINFER_CXX_LAUNCHER="${FLASHINFER_CXX_LAUNCHER:-ccache}"
+  echo "==> ccache enabled (dir: $CCACHE_DIR)" >&2
+fi
+
 cd "$(src_dir)"   # = $SRC_ROOT/flashinfer-jit-cache (fork_subdir)
 pip wheel --no-build-isolation --no-deps -w "$ROOT/dist" .
 
