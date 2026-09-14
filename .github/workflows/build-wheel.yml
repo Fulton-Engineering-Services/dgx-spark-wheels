@@ -159,6 +159,27 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
+      # This job's container must run as root (scripts/build/uccl.sh does an
+      # `apt-get install` for the RDMA dev libs). The runner bind-mounts its
+      # $HOME (/github/home) and $RUNNER_TEMP (/github/workflow) from its own
+      # _work/_temp, so everything those root steps write there lands root-owned
+      # on the host. The runner service itself is unprivileged and then cannot
+      # clean its own _work/_temp -- "TempDirectoryManager ... Permission denied"
+      # at the start of the next job (observed on gx10-9273 and gx10-f1d8,
+      # 2026-09). The workspace mount is owned by that runner user, so borrow its
+      # uid:gid and hand the temp dirs back before the container exits. Kept
+      # best-effort so it can never red-flag an otherwise successful build.
+      - name: Normalize runner temp ownership (container root -> runner user)
+        if: always()
+        shell: bash
+        run: |
+          owner="$(stat -c '%u:%g' "$GITHUB_WORKSPACE" 2>/dev/null || echo 1000:1000)"
+          for d in /github/home /github/workflow; do
+            if [ -d "$d" ]; then
+              chown -R "$owner" "$d" 2>/dev/null || true
+            fi
+          done
+
   # nixl is special: it doesn't build inside the build-env container. Instead
   # it extracts a pre-built wheel from the nixl-wheel-builder image (built by
   # build-nixl-images.yml) and verifies it inside the nixl-runtime image. Both
