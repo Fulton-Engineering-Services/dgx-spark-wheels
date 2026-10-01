@@ -300,7 +300,7 @@
       "arch_target": "sm_121a (TORCH_CUDA_ARCH_LIST=12.1a)",
       "fork": "https://github.com/Fulton-Engineering-Services/exllamav3",
       "fork_branch": "cuda13.3-aarch64-gb10",
-      "fork_ref": "aef107d46c56c378fa6ab0ea953d5400b8db5811",
+      "fork_ref": "ab6a2de4ba448010126580125de9b900133ee861",
       "upstream": "https://github.com/turboderp-org/exllamav3",
       "upstream_commit": "c5d9c657966ffeeaa9353f0cc899f18629da4a13",
       "upstream_license": "MIT",
