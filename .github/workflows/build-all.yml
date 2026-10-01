@@ -96,6 +96,7 @@ jobs:
           - flashinfer-jit-cache
           - mamba-ssm
           - causal-conv1d
+          - exllamav3
           - uccl
           - deep-ep
           - flextensor

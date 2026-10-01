@@ -63,6 +63,7 @@ Every wheel in this index is:
 | `uccl` | 0.1.2+cu13.3torch2.13.glibc239 | `sm_121` | No aarch64 wheel | [fork](https://github.com/Fulton-Engineering-Services/uccl) `cuda13.3-aarch64-gb10` |
 | `deep-ep` | 0.1.0+cu13.3torch2.13.glibc239 | pure Python (wraps `uccl.ep`) | No | same fork, `ep/deep_ep_wrapper/` subdir |
 | `flextensor` | 0.4.0+cu13.3torch2.13.glibc239 | pure Python (torch + ctypes for cuFile/GDS) | No | [fork](https://github.com/Fulton-Engineering-Services/flextensor) `feat/nvme-disk-offload` |
+| `exllamav3` | 0.0.43+cu13.3torch2.13.glibc239 | `sm_121a` (`TORCH_CUDA_ARCH_LIST=12.1a`) | No aarch64+CUDA13 wheel | [fork](https://github.com/Fulton-Engineering-Services/exllamav3) `cuda13.3-aarch64-gb10` |
 
 Every package above is published in **two CUDA variants** (`cu13.3` and
 `cu13.0`); the table shows the canonical `cu13.3` version. The variant lives

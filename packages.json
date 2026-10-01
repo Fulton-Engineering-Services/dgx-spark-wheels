@@ -291,6 +291,21 @@
       "upstream_license": "Apache-2.0",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
       "notes": "Pure-Python tensor offloading and management library. This fork adds NVMe disk offload via cuFile (GDS): weight blocks are evicted to NVMe files during construction (freeing unified DRAM for KV cache/activations on GB10's 128 GiB LPDDR) and read back to GPU during inference via cuFileRead (direct NVMe→GPU DMA) or POSIX pread (fallback). The cuFile path requires nvidia-fs loaded (modprobe nvidia-fs) + libcufile.so (bundled in the CUDA toolkit); make_nvme_backend auto-falls-back to PosixBackend when nvidia-fs is absent or the GPU model does not support GDS P2P. NOTE: cuFile/GDS is fundamentally unsupported on GB10 unified memory — cuFileHandleRegister fails with CU_FILE_IO_NOT_SUPPORTED (rc=5008) regardless of cuFile version (tested 1.15.1 from CUDA 13.0 and 1.18.1 from CUDA 13.3), nvidia-fs load state, or cuFileSetParameterBool flags (FORCE_COMPAT_MODE, SKIP_TOPOLOGY_DETECTION, USE_PCIP2PDMA, PREFER_IO_URING). The error is a platform architecture limitation: no PCIe P2P path exists from the NVMe controller to the GPU's unified memory. PosixBackend (os.pread + copy_) is the only viable NVMe transfer backend on GB10. Built with SETUPTOOLS_SCM_PRETEND_VERSION to pin the public version (setuptools_scm derives from git tags). No compiled extensions — uses ctypes for libcufile at runtime. Depends on the from-source torch (runtime) + nvidia-fs kernel module (runtime, for GDS only on non-GB10 platforms). NVMe config: OffloadConfig.nvme_offload_enabled / nvme_offload_path / nvme_transfer_mode ('cufile'|'posix') / nvme_alignment_bytes (4096). Latest commits add L0 integration tests (tests/integration/L0_nvme_offload/) covering backend GPU roundtrips, full OffloadManager lifecycle (parametrized across raw_block_transfer and allocation_block_transfer), CUDA graph capture, and profile save/restore roundtrip. Also fixes a shutdown crash when NVMe-evicted CPU blocks are None during _restore_block_loader_tensor_data, and updates all NVMe source/test docstrings to conform to the Google Python Style Guide."
+    },
+    {
+      "name": "exllamav3",
+      "version": "0.0.43+cu13.3torch2.13.glibc239",
+      "public_version": "0.0.43",
+      "wheel": "exllamav3-0.0.43+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "arch_target": "sm_121a (TORCH_CUDA_ARCH_LIST=12.1a)",
+      "fork": "https://github.com/Fulton-Engineering-Services/exllamav3",
+      "fork_branch": "cuda13.3-aarch64-gb10",
+      "fork_ref": "aef107d46c56c378fa6ab0ea953d5400b8db5811",
+      "upstream": "https://github.com/turboderp-org/exllamav3",
+      "upstream_commit": "c5d9c657966ffeeaa9353f0cc899f18629da4a13",
+      "upstream_license": "MIT",
+      "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
+      "notes": "Compiled CUDA/C++ extension (exllamav3_ext) required by shapleymcg/quant-pipeline's EXL3 MCG encode path (reproducibility/r10 imports only the extension; the Python quantize orchestration is vendored). Pinned to upstream v0.0.43 commit c5d9c65 -- the exact required_source_commit in shapleymcg's scripts/bootstrap_sm100_exl3.py, which builds this same extension for SM100/B200 (torch 2.12.1+cu132); this wheel is the GB10 counterpart (sm_121a, torch 2.13.0, CUDA 13.3 / 13.0). setup.py walks exllamav3/exllamav3_ext/**.{c,cpp,cu} into one torch cpp_extension CUDAExtension; gencode comes from TORCH_CUDA_ARCH_LIST=12.1a. Fork carries one patch: install_requires trimmed to the encode-path deps (drops flash_attn, xformers, flash-linear-attention, kbnf, formatron, marisa_trie, which are unavailable or unwanted on GB10). torch-linked package -- needs the from-source torch at build AND runtime. Built for both CUDA trains."
     }
   ]
 }

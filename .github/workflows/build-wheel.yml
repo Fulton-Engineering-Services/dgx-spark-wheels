@@ -28,6 +28,7 @@ on:
         type: choice
         options:
           - causal-conv1d
+          - exllamav3
           - flash-attn
           - flashinfer-python
           - flashinfer-jit-cache

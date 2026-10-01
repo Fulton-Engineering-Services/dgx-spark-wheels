@@ -23,6 +23,7 @@ repository's own license.
 | `causal-conv1d` | [Dao-AILab/causal-conv1d](https://github.com/Dao-AILab/causal-conv1d) | BSD-3-Clause | [upstream LICENSE](https://github.com/Dao-AILab/causal-conv1d/blob/main/LICENSE) |
 | `flextensor` | [ai-dynamo/flextensor](https://github.com/ai-dynamo/flextensor) | Apache-2.0 | [upstream LICENSE](https://github.com/ai-dynamo/flextensor/blob/main/LICENSE) |
 | `lmcache` | [LMCache/LMCache](https://github.com/LMCache/LMCache) | Apache-2.0 | [upstream LICENSE](https://github.com/LMCache/LMCache/blob/dev/LICENSE) |
+| `exllamav3` | [turboderp-org/exllamav3](https://github.com/turboderp-org/exllamav3) | MIT | [upstream LICENSE](https://github.com/turboderp-org/exllamav3/blob/master/LICENSE) |
 
 **Before publishing any wheel, verify the upstream license file at the exact
 pinned ref** (not just the current default branch) — licenses can change
