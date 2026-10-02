@@ -294,18 +294,18 @@
     },
     {
       "name": "exllamav3",
-      "version": "0.0.43+cu13.3torch2.13.glibc239",
-      "public_version": "0.0.43",
-      "wheel": "exllamav3-0.0.43+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
+      "version": "1.5.1+cu13.3torch2.13.glibc239",
+      "public_version": "1.5.1",
+      "wheel": "exllamav3-1.5.1+cu13.3torch2.13.glibc239-cp312-cp312-linux_aarch64.whl",
       "arch_target": "sm_121a (TORCH_CUDA_ARCH_LIST=12.1a)",
       "fork": "https://github.com/Fulton-Engineering-Services/exllamav3",
       "fork_branch": "cuda13.3-aarch64-gb10",
-      "fork_ref": "ab6a2de4ba448010126580125de9b900133ee861",
+      "fork_ref": "278a60ed4fe285a69278672114c1180d5f922e95",
       "upstream": "https://github.com/turboderp-org/exllamav3",
-      "upstream_commit": "c5d9c657966ffeeaa9353f0cc899f18629da4a13",
+      "upstream_commit": "6b84a21b6f1e5da3f291b9e1019061f0de788279",
       "upstream_license": "MIT",
       "build_env": "container (ghcr.io/Fulton-Engineering-Services/dgx-spark-wheels/build-env:24.04-cu<variant>)",
-      "notes": "Compiled CUDA/C++ extension (exllamav3_ext) required by shapleymcg/quant-pipeline's EXL3 MCG encode path (reproducibility/r10 imports only the extension; the Python quantize orchestration is vendored). Pinned to upstream v0.0.43 commit c5d9c65 -- the exact required_source_commit in shapleymcg's scripts/bootstrap_sm100_exl3.py, which builds this same extension for SM100/B200 (torch 2.12.1+cu132); this wheel is the GB10 counterpart (sm_121a, torch 2.13.0, CUDA 13.3 / 13.0). setup.py walks exllamav3/exllamav3_ext/**.{c,cpp,cu} into one torch cpp_extension CUDAExtension; gencode comes from TORCH_CUDA_ARCH_LIST=12.1a. Fork carries one patch: install_requires trimmed to the encode-path deps (drops flash_attn, xformers, flash-linear-attention, kbnf, formatron, marisa_trie, which are unavailable or unwanted on GB10). torch-linked package -- needs the from-source torch at build AND runtime. Built for both CUDA trains."
+      "notes": "Compiled CUDA/C++ extension (exllamav3_ext) required by shapleymcg/quant-pipeline's EXL3 MCG encode path (reproducibility/r10 imports only the extension; the Python quantize orchestration is vendored). Tracks benthecarman/exllamav3 branch mimo-v2.6-flash at 278a60ed (v1.5.1) = turboderp-org merge base 6b84a21b + 19 commits: MiMo-V2.6 architecture (mimo_v2.py, E8M0 block scales, 39 sliding-window layers on SlidingAttention, fp32 MLP guard for layer 47, shared fused-QKV reader), DFlash speculative decoding, and aarch64/GB10 guards (x86 AVX2/AVX-512 TUs gated behind __x86_64__/__i386__ in-file, CPU MoE offload stub, native TP CPU reduce, arm yield spin hint, GB10 shard page-cache drop + EXL3_LOAD_DEVICE escape hatch). Supersedes the previous v0.0.43/c5d9c65 pin, which existed solely to match shapleymcg's bootstrap_sm100_exl3.py required_source_commit (SM100/B200, torch 2.12.1+cu132): that side still builds 0.0.43; this GB10 wheel is intentionally newer for MiMo-V2.6 -- verify the MCG encode path still works against the 1.5.1 extension API before relying on it cross-platform. Fork carries NO patches on this base: upstream setup.py no longer declares install_requires (deps moved to pyproject.toml, all aarch64-resolvable -- marisa_trie and llguidance ship manylinux aarch64 wheels, pydantic is pure), and the old AVX-TU build exclusion + install_requires trim commits are superseded upstream. setup.py walks exllamav3/exllamav3_ext/**.{c,cpp,cu} into one torch cpp_extension CUDAExtension; gencode comes from TORCH_CUDA_ARCH_LIST=12.1a. torch-linked package -- needs the from-source torch at build AND runtime. Built for both CUDA trains."
     }
   ]
 }

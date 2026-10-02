@@ -4,9 +4,10 @@
 # Compiles the exllamav3_ext CUDA/C++ extension via torch.utils.cpp_extension
 # (setup.py walks exllamav3/exllamav3_ext/**.{c,cpp,cu} and precompiles when
 # torch is importable in the build venv). Gencode comes from
-# TORCH_CUDA_ARCH_LIST=12.1a. Pinned to upstream v0.0.43 (commit c5d9c65) --
-# the exact commit shapleymcg's scripts/bootstrap_sm100_exl3.py requires for
-# its SM100 build; this wheel is the GB10/sm_121a counterpart.
+# TORCH_CUDA_ARCH_LIST=12.1a. Tracks benthecarman/exllamav3 branch
+# mimo-v2.6-flash @ 278a60ed (v1.5.1): MiMo-V2.6 architecture + aarch64/GB10
+# guards (x86 AVX TUs gated in-file, CPU MoE stub, native TP CPU reduce).
+# Fork carries no patches on this base; turboderp-org merge base is 6b84a21b.
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 load_pkg exllamav3
