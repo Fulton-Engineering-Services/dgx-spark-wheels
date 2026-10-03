@@ -1,0 +1,6 @@
+# actionlint config: self-hosted runner labels used by this repo.
+# arc-fes = ARC scale set; gb10 = the GB10 (DGX) self-hosted runner.
+self-hosted-runner:
+  labels:
+    - arc-fes
+    - gb10
