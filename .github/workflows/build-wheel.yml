@@ -33,6 +33,7 @@ on:
           - flashinfer-python
           - flashinfer-jit-cache
           - lmcache
+          - lmcache-mooncake
           - mamba-ssm
           - nixl
           - uccl
@@ -86,7 +87,10 @@ permissions:
 
 jobs:
   build:
-    if: inputs.package != 'nixl'
+    # Packages that extract a pre-built wheel from a Docker builder image (nixl,
+    # lmcache-mooncake) cannot build inside the build-env container: they need
+    # the docker CLI on the bare runner. Route them to build-docker below.
+    if: ${{ !contains(fromJSON('["nixl","lmcache-mooncake"]'), inputs.package) }}
     runs-on: [self-hosted, gb10]
     timeout-minutes: 720
     container:
@@ -181,12 +185,13 @@ jobs:
             fi
           done
 
-  # nixl is special: it doesn't build inside the build-env container. Instead
-  # it extracts a pre-built wheel from the nixl-wheel-builder image (built by
-  # build-nixl-images.yml) and verifies it inside the nixl-runtime image. Both
-  # require docker CLI on the bare runner, so this job has no container:.
-  build-nixl:
-    if: inputs.package == 'nixl'
+  # Docker-extracted packages (nixl, lmcache-mooncake) don't build inside the
+  # build-env container. Instead they extract a pre-built wheel from a Docker
+  # builder image (built by build-nixl-images.yml / build-lmcache-mooncake-image.yml)
+  # and verify it via scripts/build/verify-<package>.sh inside a runtime image.
+  # Both require the docker CLI on the bare runner, so this job has no container:.
+  build-docker:
+    if: ${{ contains(fromJSON('["nixl","lmcache-mooncake"]'), inputs.package) }}
     runs-on: [self-hosted, gb10]
     timeout-minutes: 720
     steps:
@@ -199,15 +204,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Extract and stamp nixl wheel
+      - name: Extract and stamp ${{ inputs.package }} wheel
         env:
           CUDA_VARIANT: cu${{ inputs.cuda }}
-        run: scripts/build/nixl.sh
+        run: scripts/build/${{ inputs.package }}.sh
 
-      - name: Verify nixl in runtime image
+      - name: Verify ${{ inputs.package }} in runtime image
         env:
           CUDA_VARIANT: cu${{ inputs.cuda }}
-        run: scripts/build/verify-nixl.sh
+        run: scripts/build/verify-${{ inputs.package }}.sh
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
@@ -222,8 +227,8 @@ jobs:
           retention-days: 1
 
   release:
-    needs: [build, build-nixl]
-    if: ${{ !cancelled() && (needs.build.result == 'success' || needs.build-nixl.result == 'success') }}
+    needs: [build, build-docker]
+    if: ${{ !cancelled() && (needs.build.result == 'success' || needs.build-docker.result == 'success') }}
     # Runs on the free arm runner (not the self-hosted GB10 box) because: (1)
     # gh CLI is pre-installed, (2) clean workspace avoids root-owned file
     # conflicts from the container build job, (3) no GPU needed for a release
