@@ -1,0 +1,101 @@
+[[refs]]
+type = "self"
+repo = "dgx-spark-wheels"
+ref = "main"
+description = "This project's own codekeeper index."
+
+[[refs]]
+type = "dependency"
+repo = "triton-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "triton wheel built from FES triton fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "pytorch-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "torch wheel built from FES pytorch fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "audio-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "torchaudio wheel built from FES audio fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "vision-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "torchvision wheel built from FES vision fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "flash-attention-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "flash-attn wheel built from FES flash-attention fork (branch cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "SageAttention-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "SageAttention wheel built from FES SageAttention fork (branch cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "nunchaku-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "nunchaku wheel built from FES nunchaku fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "onnxruntime-cuda13-aarch64-gb10"
+ref = "main"
+description = "onnxruntime-gpu wheel built from FES onnxruntime fork (branch cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "flashinfer-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "flashinfer-python + flashinfer-jit-cache wheels built from FES flashinfer fork (branches v0.6.18-gb10 / cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "mamba-cuda13-aarch64-gb10"
+ref = "main"
+description = "mamba-ssm wheel built from FES mamba fork (branch cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "causal-conv1d-cuda13-aarch64-gb10"
+ref = "main"
+description = "causal-conv1d wheel built from FES causal-conv1d fork (branch cuda13-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "uccl-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "deep-ep wheel built from FES uccl fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "flextensor-feat-nvme-disk-offload"
+ref = "main"
+description = "flextensor wheel built from FES flextensor fork (branch feat/nvme-disk-offload)."
+
+[[refs]]
+type = "dependency"
+repo = "exllamav3-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "exllamav3 wheel built from FES exllamav3 fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "lmcache-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "lmcache-mooncake wheel built from FES lmcache fork (branch cuda13.3-aarch64-gb10)."
+
+[[refs]]
+type = "dependency"
+repo = "nixl-cuda13.3-aarch64-gb10"
+ref = "main"
+description = "nixl-cu13 wheel built from FES nixl fork (branch cuda13.3-aarch64-gb10)."
