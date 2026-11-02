@@ -24,7 +24,7 @@ ARG NIXL_REF=2a4cf768a20e39c0a38085b21e59e3961f0dda8e
 ARG UCX_REPO=https://github.com/openucx/ucx.git
 ARG UCX_REF=7a5e80f389ea345c0480ca49a73d0cbf2b1d79d0
 ARG MOONCAKE_REPO=https://github.com/kvcache-ai/Mooncake.git
-ARG MOONCAKE_REF=v0.3.12.post1
+ARG MOONCAKE_REF=v0.3.13.post1
 
 # ------------------------------------------------------------------------------
 # base-env: CUDA devel + build tools + RDMA / libfabric / ASIO dependencies.

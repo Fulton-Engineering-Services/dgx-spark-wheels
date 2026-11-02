@@ -28,7 +28,7 @@ FROM ${BASE_IMAGE}
 
 # Source refs -- pinned for reproducibility. Override with --build-arg.
 ARG MOONCAKE_REPO=https://github.com/kvcache-ai/Mooncake.git
-ARG MOONCAKE_REF=v0.3.12.post1
+ARG MOONCAKE_REF=v0.3.13.post1
 ARG LMCACHE_REPO=https://github.com/Fulton-Engineering-Services/lmcache.git
 ARG LMCACHE_REF=ca2f474412e3b881c2f39e62561414c9676653dc
 ARG LMCACHE_VERSION=0.5.5rc1
