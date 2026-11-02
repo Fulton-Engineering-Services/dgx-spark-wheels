@@ -53,7 +53,7 @@ RUN apt-get update -qq && \
 # Store headers (with submodules: extern/yalantinglibs carries iguana + frozen).
 RUN git clone --depth 1 --branch "${MOONCAKE_REF}" "${MOONCAKE_REPO}" /src/mooncake && \
     cd /src/mooncake && \
-    git submodule update --init --recursive --depth 1
+    git submodule update --init --depth 1
 
 # Include roots the ext's connector.cpp needs (verified: 0 errors).
 ENV MOONCAKE_INCLUDE_DIR="/src/mooncake/mooncake-store/include;/src/mooncake/mooncake-store/include/cachelib_memory_allocator;/src/mooncake/mooncake-store/include/cachelib_memory_allocator/include;/src/mooncake/mooncake-store/include/cachelib_memory_allocator/fake_include;/src/mooncake/mooncake-common/include;/src/mooncake/mooncake-transfer-engine/include;/src/mooncake/extern/yalantinglibs/include;/src/mooncake/extern/yalantinglibs/include/ylt/standalone;/src/mooncake/extern/yalantinglibs/include/ylt/thirdparty"
